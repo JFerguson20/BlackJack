@@ -45,6 +45,11 @@
   <ItemGroup>
     <Compile Include="Card.cs" />
     <Compile Include="Deck.cs" />
+    <Compile Include="Net\CpuFuncs.cs" />
+    <Compile Include="Net\Layer.cs" />
+    <Compile Include="Net\Net.cs" />
+    <Compile Include="Net\NetCore.cs" />
+    <Compile Include="Net\Neuron.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
