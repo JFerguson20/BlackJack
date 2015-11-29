@@ -90,7 +90,7 @@ namespace BlackJack
                         var playersTurn = true;
                         var aceVal = 0.0f;
                         if (playerHasAce) aceVal = 1.0f;
-                        float[] input = { (float)playersVal, (float)dealersVal, aceVal};
+                        float[] input = genInputVec(playersVal, dealerHidden, aceVal);
                         float[] goal = { 0.0f, 0.0f };
 
                         //float[] goal = testFunc(s, s1, s2, s3);                        
@@ -140,39 +140,58 @@ namespace BlackJack
                                 }
                                 else //update input for next decision
                                 {
-                                    input[0] = (float)playersVal;
                                     aceVal = 0.0f;
                                     if (playerHasAce) aceVal = 1.0f;
-                                    input[2] = aceVal;
+                                    input = genInputVec(playersVal, dealersVal, aceVal);                               
+                    
                                 }
                             }
                         }
-                        //now dealers turn.
-
-                        if(playersVal > 21) // if we busted, the dealer doesnt have to play
+                        //now dealers turn.                    
+                        if (playersVal > 21) // if we busted, the dealer doesnt have to play
                         {
                             net.forward(input);
                             net.backward(goal);
                         }
-                        bool dealersTurn = true;
-                        dealersVal += dealerHidden;
-                         
-                        while(dealersTurn)
+                        else
                         {
-                            if(dealersVal < 17)
+                            dealersVal += dealerHidden;
+                            bool dealersTurn = true;
+                            while (dealersTurn)
                             {
-                                var card = deck.getCard();
-                                if (card == 1) card == 11;
-                                dealersVal += card;
-                                if (dealersVal > 21 && card == 11) dealersVal -= 10;
+                                if (dealersVal < 17)
+                                {
+                                    var card = deck.getCard();
+                                    if (card == 1) card = 11;
+                                    dealersVal += card;
+                                    if (dealersVal > 21 && card == 11) dealersVal -= 10;
+                                }
+                                else
+                                {
+                                    dealersTurn = false;
+                                }
                             }
-                            else
-                            {
-                                dealersTurn = false;
-                            }
-                        }
-                        //decide who wins
 
+                            //decide who wins
+                            if (dealersVal > 21) // dealer busted
+                            {
+                                goal[0] = 1.0f;
+                                goal[1] = 0.0f;
+                            }
+                            else if (dealersVal > playersVal)
+                            {
+                                goal[0] = -1.0f;
+                                goal[1] = 0.0f;
+                            }
+                            else if (playersVal > dealersVal)
+                            {
+                                goal[0] = 1.0f;
+                                goal[1] = 0.0f;
+                            }
+
+                            net.forward(input);
+                            net.backward(goal);
+                        }
                     }
 
                 }
@@ -183,6 +202,11 @@ namespace BlackJack
         private static void testSimpleBlackjack(Net.Net net)
         {
             
+        }
+
+        private static void simpleBasicStrategy()
+        {
+
         }
 
         private static float[] playerValVec(int playerVal)
@@ -205,7 +229,7 @@ namespace BlackJack
             return ret;
         }
 
-        private static float[] genInputVec(int playerVal, int dealerShowing, int aceVal)
+        private static float[] genInputVec(int playerVal, int dealerShowing, float aceVal)
         {
             float[] ret = new float[28];
 
