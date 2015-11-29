@@ -9,9 +9,9 @@ namespace BlackJack
 {
     class Program
     {
-        private static Deck deck;
+       
         static void Main(string[] args)
-        {
+        {   /*
             int[] x = {10, 20, 10};
             var net = new Net.Net(4, x, 3);
             Random r = new Random();
@@ -44,7 +44,7 @@ namespace BlackJack
                 
                 Console.WriteLine(a[0] + " " + a[1] + " " + a[2] + " : " + goal1[0] + " " + goal1[1] + " " + goal1[2]);
             }
-           
+            */
 
             
             /*
@@ -52,7 +52,134 @@ namespace BlackJack
             deck = new Deck(1);
             */
         }
+        
+        //test with only hit and stand actions
+        static private void simpleBlackjack(int numberOfHands, int testInterval)
+        {
 
+            int[] x = { 10, 20, 10 };
+            //input, playersVal, dealersVal, playerHasAce
+            var net = new Net.Net(3, x, 2);
+            Random r = new Random();
+            var eps = .9;
+            for (int hand = 0; hand < numberOfHands; hand++)
+            {
+                
+                if (hand % testInterval == 0)
+                {
+                    testSimpleBlackjack(net);
+                }
+                else
+                {
+                    var playersVal = 0;
+                    var dealersVal = 0;
+                    var playerHasAce = false;
+                    var deck = dealInitCards(ref playersVal, ref dealersVal, ref playerHasAce);
+                    var dealerHidden = deck.getCard();
+                    if (dealerHidden == 1 && dealersVal != 11) dealerHidden = 11;
+
+                    var handOver = false;
+                    if (playersVal == 21 && dealersVal + dealerHidden != 21)
+                    {
+                        //BlackJack!!!
+                        handOver = true;
+                    }
+
+                    while(!handOver)
+                    {
+                        var playersTurn = true;
+                        var aceVal = 0.0f;
+                        if (playerHasAce) aceVal = 1.0f;
+                        float[] input = { (float)playersVal, (float)dealersVal, aceVal};
+                        float[] goal = { 0.0f, 0.0f };
+
+                        //float[] goal = testFunc(s, s1, s2, s3);                        
+                        while (playersTurn)
+                        {
+                            //action 0 is stand, action 1 is hit.
+                            var choosenA = 0;
+                            var a = net.forward(input);                        
+                            if (eps > r.NextDouble()) //choose best action
+                            {
+                                if (a[0] > a[1])
+                                    choosenA = 0;
+                                else
+                                    choosenA = 1;
+                            }
+                            else //choose worst action.
+                            {
+                                if (a[0] < a[1])
+                                    choosenA = 0;
+                                else
+                                    choosenA = 1;
+                            }
+
+                            if (choosenA == 0) //stand
+                            {
+                                playersTurn = false;
+                            }
+                            else//hit
+                            {                             
+                                var newCard = deck.getCard();
+                                if (newCard == 1) playerHasAce = true;
+
+                                playersVal += newCard;
+                                if (playersVal > 21)
+                                {
+                                    if(playerHasAce)
+                                    {
+                                        playersVal -= 10;
+                                        playerHasAce = false;
+                                    }
+                                    else //we busted, goal is a neg for hit action
+                                    {
+                                        goal[0] = 0.0f;
+                                        goal[1] = -1.0f;
+                                        playersTurn = false;
+                                    }
+                                }
+                                else //update input for next decision
+                                {
+                                    input[0] = (float)playersVal;
+                                    aceVal = 0.0f;
+                                    if (playerHasAce) aceVal = 1.0f;
+                                    input[2] = aceVal;
+                                }
+                            }
+                        }
+                        //now dealers turn.
+
+                        if(playersVal > 21) // if we busted, the dealer doesnt have to play
+                        {
+                            net.forward(input);
+                            net.backward(goal);
+                        }
+                        bool dealersTurn = true;
+                        dealersVal += dealerHidden;
+                         
+                        while(dealersTurn)
+                        {
+                            if(dealersVal < 17)
+                            {
+
+                            }
+                            else
+                            {
+                                dealersVal += 
+                            }
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        private static void testSimpleBlackjack(Net.Net net)
+        {
+            
+        }
+            /*
         static private float[] testFunc(double a, double b, double c, double d)
         {
             float[] ret = new float[3];
@@ -64,19 +191,21 @@ namespace BlackJack
 
             return ret;
         }
+        */
         // return 1 for player won and -1 for dealer one
-        static int playHand()
+        static Deck dealInitCards(ref int playersVal, ref int dealerShown, ref bool playerHasAce)
         {
-            bool canSplit = false;
-            var playersVal = 0;
-            var dealerVal = 0;
-
+            var deck = new Deck(1);
+            playerHasAce = false;
+            deck.shuffleCards();
+            playersVal = deck.getCard();
             //get initial players and dealers card
             var card = deck.getCard();
             //player first card
-            if(card == 1)
+            if (card == 1)
             {
                 playersVal = 11;
+                playerHasAce = true;
             }
             else
             {
@@ -84,11 +213,10 @@ namespace BlackJack
             }
             //get second card
             card = deck.getCard();
-            if (card == playersVal)
-                canSplit = true;
 
-            if(card == 1)
+            if (card == 1)
             {
+                playerHasAce = true;
                 if (playersVal >= 11)
                     playersVal += 1;
                 else
@@ -99,12 +227,10 @@ namespace BlackJack
                 playersVal += card;
             }
 
-            //get dealer card
-            dealerVal = deck.getCard();
-            
-            //Now make the decisions
-
-            return 1;
+            //get dealer showing card
+            dealerShown = deck.getCard();
+            if (dealerShown == 1) dealerShown = 11;
+            return deck;
         }
     }
 }
