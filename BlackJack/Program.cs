@@ -58,8 +58,8 @@ namespace BlackJack
         {
 
             int[] x = { 10, 20, 10 };
-            //input, playersVal, dealersVal, playerHasAce
-            var net = new Net.Net(3, x, 2);
+            //input, playersVal (17), dealersVal(10), playerHasAce(1)
+            var net = new Net.Net(28, x, 2);
             Random r = new Random();
             var eps = .9;
             for (int hand = 0; hand < numberOfHands; hand++)
@@ -79,7 +79,7 @@ namespace BlackJack
                     if (dealerHidden == 1 && dealersVal != 11) dealerHidden = 11;
 
                     var handOver = false;
-                    if (playersVal == 21 && dealersVal + dealerHidden != 21)
+                    if (playersVal == 21)
                     {
                         //BlackJack!!!
                         handOver = true;
@@ -161,13 +161,18 @@ namespace BlackJack
                         {
                             if(dealersVal < 17)
                             {
-
+                                var card = deck.getCard();
+                                if (card == 1) card == 11;
+                                dealersVal += card;
+                                if (dealersVal > 21 && card == 11) dealersVal -= 10;
                             }
                             else
                             {
-                                dealersVal += 
+                                dealersTurn = false;
                             }
                         }
+                        //decide who wins
+
                     }
 
                 }
@@ -179,6 +184,49 @@ namespace BlackJack
         {
             
         }
+
+        private static float[] playerValVec(int playerVal)
+        {
+            //4-21 
+            float[] ret = new float[17];
+            for (int i = 0; i < ret.Length; i++)
+                ret[i] = 0.0f;
+            ret[playerVal - 4] = 1.0f;
+            return ret;
+        }
+
+        private static float[] dealerValVec(int dealerShowing)
+        {
+            //2-11
+            float[] ret = new float[10];
+            for (int i = 0; i < ret.Length; i++)
+                ret[i] = 0.0f;
+            ret[dealerShowing - 2] = 1.0f;
+            return ret;
+        }
+
+        private static float[] genInputVec(int playerVal, int dealerShowing, int aceVal)
+        {
+            float[] ret = new float[28];
+
+            var playerVec = playerValVec(playerVal);
+            var dealerVec = dealerValVec(dealerShowing);
+
+            for(int i = 0; i < ret.Length; i++)
+            {
+                if( i < playerVec.Length)
+                {
+                    ret[i] = playerVec[i];
+                }
+                else
+                {
+                    ret[i] = dealerVec[i - playerVec.Length]; 
+                }
+            }
+            ret[27] = aceVal;
+            return ret;
+        }
+
             /*
         static private float[] testFunc(double a, double b, double c, double d)
         {
