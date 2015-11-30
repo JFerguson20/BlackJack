@@ -23,7 +23,7 @@ namespace BlackJack
             for(int i = 0; i < numDecks; i++)
             {   
                 //add cards 1-9 (ace through 9)
-                for(int card = 1; card <10; card++)
+                for(int card = 2; card <10; card++)
                 {
                     //each suit
                     for(int j = 0; j < 4; j++)
@@ -39,6 +39,10 @@ namespace BlackJack
                     {
                         cardsLeft.Add(10);
                     }
+                }
+                for(int a = 0; a < 4; a++)
+                {
+                    cardsLeft.Add(11);
                 }
             }
         }

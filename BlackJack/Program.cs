@@ -46,11 +46,13 @@ namespace BlackJack
             }
             */
 
-            
+
             /*
             deck.shuffleCards();
             deck = new Deck(1);
             */
+            simpleBasicStrategy(10000);
+            int i = 0;
         }
         
         //test with only hit and stand actions
@@ -62,140 +64,7 @@ namespace BlackJack
             var net = new Net.Net(28, x, 2);
             Random r = new Random();
             var eps = .9;
-            for (int hand = 0; hand < numberOfHands; hand++)
-            {
-                
-                if (hand % testInterval == 0)
-                {
-                    testSimpleBlackjack(net);
-                }
-                else
-                {
-                    var playersVal = 0;
-                    var dealersVal = 0;
-                    var playerHasAce = false;
-                    var deck = dealInitCards(ref playersVal, ref dealersVal, ref playerHasAce);
-                    var dealerHidden = deck.getCard();
-                    if (dealerHidden == 1 && dealersVal != 11) dealerHidden = 11;
-
-                    var handOver = false;
-                    if (playersVal == 21)
-                    {
-                        //BlackJack!!!
-                        handOver = true;
-                    }
-
-                    while(!handOver)
-                    {
-                        var playersTurn = true;
-                        var aceVal = 0.0f;
-                        if (playerHasAce) aceVal = 1.0f;
-                        float[] input = genInputVec(playersVal, dealerHidden, aceVal);
-                        float[] goal = { 0.0f, 0.0f };
-
-                        //float[] goal = testFunc(s, s1, s2, s3);                        
-                        while (playersTurn)
-                        {
-                            //action 0 is stand, action 1 is hit.
-                            var choosenA = 0;
-                            var a = net.forward(input);                        
-                            if (eps > r.NextDouble()) //choose best action
-                            {
-                                if (a[0] > a[1])
-                                    choosenA = 0;
-                                else
-                                    choosenA = 1;
-                            }
-                            else //choose worst action.
-                            {
-                                if (a[0] < a[1])
-                                    choosenA = 0;
-                                else
-                                    choosenA = 1;
-                            }
-
-                            if (choosenA == 0) //stand
-                            {
-                                playersTurn = false;
-                            }
-                            else//hit
-                            {                             
-                                var newCard = deck.getCard();
-                                if (newCard == 1) playerHasAce = true;
-
-                                playersVal += newCard;
-                                if (playersVal > 21)
-                                {
-                                    if(playerHasAce)
-                                    {
-                                        playersVal -= 10;
-                                        playerHasAce = false;
-                                    }
-                                    else //we busted, goal is a neg for hit action
-                                    {
-                                        goal[0] = 0.0f;
-                                        goal[1] = -1.0f;
-                                        playersTurn = false;
-                                    }
-                                }
-                                else //update input for next decision
-                                {
-                                    aceVal = 0.0f;
-                                    if (playerHasAce) aceVal = 1.0f;
-                                    input = genInputVec(playersVal, dealersVal, aceVal);                               
-                    
-                                }
-                            }
-                        }
-                        //now dealers turn.                    
-                        if (playersVal > 21) // if we busted, the dealer doesnt have to play
-                        {
-                            net.forward(input);
-                            net.backward(goal);
-                        }
-                        else
-                        {
-                            dealersVal += dealerHidden;
-                            bool dealersTurn = true;
-                            while (dealersTurn)
-                            {
-                                if (dealersVal < 17)
-                                {
-                                    var card = deck.getCard();
-                                    if (card == 1) card = 11;
-                                    dealersVal += card;
-                                    if (dealersVal > 21 && card == 11) dealersVal -= 10;
-                                }
-                                else
-                                {
-                                    dealersTurn = false;
-                                }
-                            }
-
-                            //decide who wins
-                            if (dealersVal > 21) // dealer busted
-                            {
-                                goal[0] = 1.0f;
-                                goal[1] = 0.0f;
-                            }
-                            else if (dealersVal > playersVal)
-                            {
-                                goal[0] = -1.0f;
-                                goal[1] = 0.0f;
-                            }
-                            else if (playersVal > dealersVal)
-                            {
-                                goal[0] = 1.0f;
-                                goal[1] = 0.0f;
-                            }
-
-                            net.forward(input);
-                            net.backward(goal);
-                        }
-                    }
-
-                }
-            }
+           
 
         }
 
@@ -204,9 +73,196 @@ namespace BlackJack
             
         }
 
-        private static void simpleBasicStrategy()
+        private static void simpleBasicStrategy(int numOfHands)
         {
+            int totalHandsPlayed;
+            double winLoss = 0.0; //-1 for loss, +1 for win. +1.5 for blackjack. 0 for draw
+            var policy = new BasicStrategy();
+            int numBlackJacks = 0;
+            int numWins = 0;
+            int numDraws = 0;
+            int numLosses = 0;
+            //do each hand
+            for (totalHandsPlayed = 0; totalHandsPlayed < numOfHands; totalHandsPlayed++)
+            {
+                Deck deck = new Deck(6);
+                deck.shuffleCards();
+                Hand playerHand = new Hand();
+                Hand dealerHand = new Hand();
+                //deal initial cards
+                playerHand.addCards(deck.getCard());
+                dealerHand.addCards(deck.getCard());
+                playerHand.addCards(deck.getCard());
+                dealerHand.addCards(deck.getCard());
 
+
+                if (playerHand.getValue() == 21 && dealerHand.getValue() != 21)
+                {
+                    //BLACK JACK
+                    numBlackJacks++;
+                    winLoss += 1.5;
+                }
+                else if (dealerHand.getValue() == 21)
+                { 
+                    //Dealer BJ
+                    numLosses++;
+                    winLoss -= 1.0;
+                }
+                else
+                {
+                    //player decisions
+                    var action = policy.choosePlayerAction(playerHand, dealerHand);
+                    while (action == 1)
+                    {
+                        playerHand.addCards(deck.getCard());
+                        action = policy.choosePlayerAction(playerHand, dealerHand);
+                    }
+
+                    //see if we busted
+                    if (playerHand.getValue() > 21)
+                    {
+                        numLosses++;
+                        winLoss -= 1.0;
+                    }
+                    else
+                    {
+                        //play dealer
+                        var dealerAction = policy.chooseDealerAction(dealerHand);
+                        while (dealerAction == 1)
+                        {
+                            dealerHand.addCards(deck.getCard());
+                            dealerAction = policy.chooseDealerAction(dealerHand);
+                        }
+
+                        if (dealerHand.getValue() > 21) //dealer busts
+                        {
+                            numWins++;
+                            winLoss += 1.0;
+                        }
+                        else if (dealerHand.getValue() < playerHand.getValue())
+                        {
+                            numWins++;
+                            winLoss += 1.0f;
+                        }
+                        else if (dealerHand.getValue() == playerHand.getValue())
+                        {
+                            numDraws++;
+                        }
+                        else
+                        {
+                            numLosses++;
+                            winLoss -= 1.0;
+                        }
+
+                    }
+                }
+
+            }
+            Console.WriteLine("Wins: " + numWins);
+            Console.WriteLine("Losses: " + numLosses);
+            Console.WriteLine("Draws: " + numDraws);
+            Console.WriteLine("BJ: " + numBlackJacks);
+            Console.WriteLine("WinLoss: " + winLoss);
+            var x = winLoss / (1.0 * numOfHands);
+            Console.WriteLine("%: " + x);
+        }
+
+        private static void NNsimpleBasicStrategy(Net.Net net, int numOfHands)
+        {
+            int totalHandsPlayed;
+            double winLoss = 0.0; //-1 for loss, +1 for win. +1.5 for blackjack. 0 for draw
+            int[] x = { 50 };
+            //input, playersVal (17), dealersVal(10), playerHasAce(1)
+            
+            var eps = .9;
+            var policy = new NNBasicStrategy(net, eps);
+            int numBlackJacks = 0;
+            int numWins = 0;
+            int numDraws = 0;
+            int numLosses = 0;
+            //do each hand
+            for (totalHandsPlayed = 0; totalHandsPlayed < numOfHands; totalHandsPlayed++)
+            {
+                Deck deck = new Deck(6);
+                deck.shuffleCards();
+                Hand playerHand = new Hand();
+                Hand dealerHand = new Hand();
+                //deal initial cards
+                playerHand.addCards(deck.getCard());
+                dealerHand.addCards(deck.getCard());
+                playerHand.addCards(deck.getCard());
+                dealerHand.addCards(deck.getCard());
+
+
+                if (playerHand.getValue() == 21 && dealerHand.getValue() != 21)
+                {
+                    //BLACK JACK
+                    numBlackJacks++;
+                    winLoss += 1.5;
+                }
+                else if (dealerHand.getValue() == 21)
+                {
+                    //Dealer BJ
+                    numLosses++;
+                    winLoss -= 1.0;
+                }
+                else
+                {
+                    //player decisions
+                    var action = policy.choosePlayerAction(playerHand, dealerHand);
+                    while (action == 1)
+                    {
+                        playerHand.addCards(deck.getCard());
+                        action = policy.choosePlayerAction(playerHand, dealerHand);
+                    }
+
+                    //see if we busted
+                    if (playerHand.getValue() > 21)
+                    {
+                        numLosses++;
+                        winLoss -= 1.0;
+                    }
+                    else
+                    {
+                        //play dealer
+                        var dealerAction = policy.chooseDealerAction(dealerHand);
+                        while (dealerAction == 1)
+                        {
+                            dealerHand.addCards(deck.getCard());
+                            dealerAction = policy.chooseDealerAction(dealerHand);
+                        }
+
+                        if (dealerHand.getValue() > 21) //dealer busts
+                        {
+                            numWins++;
+                            winLoss += 1.0;
+                        }
+                        else if (dealerHand.getValue() < playerHand.getValue())
+                        {
+                            numWins++;
+                            winLoss += 1.0f;
+                        }
+                        else if (dealerHand.getValue() == playerHand.getValue())
+                        {
+                            numDraws++;
+                        }
+                        else
+                        {
+                            numLosses++;
+                            winLoss -= 1.0;
+                        }
+
+                    }
+                }
+
+            }
+            Console.WriteLine("Wins: " + numWins);
+            Console.WriteLine("Losses: " + numLosses);
+            Console.WriteLine("Draws: " + numDraws);
+            Console.WriteLine("BJ: " + numBlackJacks);
+            Console.WriteLine("WinLoss: " + winLoss);
+            var x = winLoss / (1.0 * numOfHands);
+            Console.WriteLine("%: " + x);
         }
 
         private static float[] playerValVec(int playerVal)

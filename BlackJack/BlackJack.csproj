@@ -43,8 +43,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Card.cs" />
+    <Compile Include="BasicStrategy.cs" />
     <Compile Include="Deck.cs" />
+    <Compile Include="Hand.cs" />
     <Compile Include="Net\CpuFuncs.cs" />
     <Compile Include="Net\Layer.cs" />
     <Compile Include="Net\Net.cs" />
