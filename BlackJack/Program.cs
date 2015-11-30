@@ -51,7 +51,8 @@ namespace BlackJack
             deck.shuffleCards();
             deck = new Deck(1);
             */
-            simpleBasicStrategy(10000);
+            //simpleBasicStrategy(10000);
+            simpleBlackjack(1000000, 10000);
             int i = 0;
         }
         
@@ -59,12 +60,23 @@ namespace BlackJack
         static private void simpleBlackjack(int numberOfHands, int testInterval)
         {
 
-            int[] x = { 10, 20, 10 };
+            int[] x = { 100 };
             //input, playersVal (17), dealersVal(10), playerHasAce(1)
             var net = new Net.Net(28, x, 2);
             Random r = new Random();
-            var eps = .9;
-           
+            var eps = .9; ;
+            for(int i = 0; i < numberOfHands; i++)
+            {
+                if(i % testInterval == 0)
+                {
+                    var perc = NNsimpleBasicStrategy(net, 1000, 1.0);
+                    Console.WriteLine(i + " : "+ perc);
+                }
+                else
+                {
+                    NNsimpleBasicStrategy(net, 1, eps, true);
+                }
+            }
 
         }
 
@@ -167,19 +179,19 @@ namespace BlackJack
             Console.WriteLine("%: " + x);
         }
 
-        private static void NNsimpleBasicStrategy(Net.Net net, int numOfHands)
+        private static double NNsimpleBasicStrategy(Net.Net net, int numOfHands, double eps, bool isTraining = false)
         {
             int totalHandsPlayed;
             double winLoss = 0.0; //-1 for loss, +1 for win. +1.5 for blackjack. 0 for draw
-            int[] x = { 50 };
+
             //input, playersVal (17), dealersVal(10), playerHasAce(1)
-            
-            var eps = .9;
+            float[] goal = { 0.0f, 0.0f };
             var policy = new NNBasicStrategy(net, eps);
             int numBlackJacks = 0;
             int numWins = 0;
             int numDraws = 0;
             int numLosses = 0;
+            bool noForwardPass = false; 
             //do each hand
             for (totalHandsPlayed = 0; totalHandsPlayed < numOfHands; totalHandsPlayed++)
             {
@@ -199,12 +211,14 @@ namespace BlackJack
                     //BLACK JACK
                     numBlackJacks++;
                     winLoss += 1.5;
+                    noForwardPass = true;
                 }
                 else if (dealerHand.getValue() == 21)
                 {
                     //Dealer BJ
                     numLosses++;
                     winLoss -= 1.0;
+                    noForwardPass = true;
                 }
                 else
                 {
@@ -213,6 +227,12 @@ namespace BlackJack
                     while (action == 1)
                     {
                         playerHand.addCards(deck.getCard());
+
+                        if(playerHand.getValue() > 21)
+                        {
+                            break;
+                        }
+
                         action = policy.choosePlayerAction(playerHand, dealerHand);
                     }
 
@@ -221,6 +241,8 @@ namespace BlackJack
                     {
                         numLosses++;
                         winLoss -= 1.0;
+                        goal[0] = 0.0f;
+                        goal[1] = -1.0f;
                     }
                     else
                     {
@@ -236,9 +258,14 @@ namespace BlackJack
                         {
                             numWins++;
                             winLoss += 1.0;
+                            goal[0] = 1.0f;
+                            goal[1] = 0.0f;
                         }
                         else if (dealerHand.getValue() < playerHand.getValue())
                         {
+                            goal[0] = 1.0f;
+                            goal[1] = 0.0f;
+
                             numWins++;
                             winLoss += 1.0f;
                         }
@@ -248,6 +275,8 @@ namespace BlackJack
                         }
                         else
                         {
+                            goal[0] = -1.0f;
+                            goal[1] = 0.0f;
                             numLosses++;
                             winLoss -= 1.0;
                         }
@@ -256,13 +285,24 @@ namespace BlackJack
                 }
 
             }
+            
+            if(isTraining)
+            {
+                if(numDraws == 0 && numBlackJacks != 1 && !noForwardPass)
+                    policy.runBackwards(goal);
+            }
+
+            /*
             Console.WriteLine("Wins: " + numWins);
             Console.WriteLine("Losses: " + numLosses);
             Console.WriteLine("Draws: " + numDraws);
             Console.WriteLine("BJ: " + numBlackJacks);
             Console.WriteLine("WinLoss: " + winLoss);
-            var x = winLoss / (1.0 * numOfHands);
+            
             Console.WriteLine("%: " + x);
+            */
+            var x = winLoss / (1.0 * numOfHands);
+            return x;
         }
 
         private static float[] playerValVec(int playerVal)

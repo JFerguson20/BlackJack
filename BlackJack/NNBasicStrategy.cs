@@ -75,7 +75,7 @@ namespace BlackJack
         private static float[] playerValVec(int playerVal)
         {
             //4-21 
-            float[] ret = new float[17];
+            float[] ret = new float[18];
             for (int i = 0; i < ret.Length; i++)
                 ret[i] = 0.0f;
             ret[playerVal - 4] = 1.0f;
@@ -99,7 +99,7 @@ namespace BlackJack
             var playerVec = playerValVec(playerVal);
             var dealerVec = dealerValVec(dealerShowing);
 
-            for (int i = 0; i < ret.Length; i++)
+            for (int i = 0; i < ret.Length - 1; i++)
             {
                 if (i < playerVec.Length)
                 {

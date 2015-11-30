@@ -51,6 +51,7 @@
     <Compile Include="Net\Net.cs" />
     <Compile Include="Net\NetCore.cs" />
     <Compile Include="Net\Neuron.cs" />
+    <Compile Include="NNBasicStrategy.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

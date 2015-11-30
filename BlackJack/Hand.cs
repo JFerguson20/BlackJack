@@ -52,7 +52,13 @@ namespace BlackJack
 
         public int getDealerShowing()
         {
-            return cards[0];
+            int ret = cards[0];
+            if (cards[0] == 1)
+            {
+                ret = cards[1];
+            }
+                
+            return ret;
         }
 
         public float getAceValue()
