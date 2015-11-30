@@ -52,19 +52,21 @@ namespace BlackJack
             deck = new Deck(1);
             */
             //simpleBasicStrategy(10000);
-            simpleBlackjack(1000000, 10000);
+            simpleBlackjack(100000000, 10000);
             int i = 0;
         }
         
+        
+
         //test with only hit and stand actions
         static private void simpleBlackjack(int numberOfHands, int testInterval)
         {
 
-            int[] x = { 100 };
+            int[] x = { 20, 50, 20};
             //input, playersVal (17), dealersVal(10), playerHasAce(1)
             var net = new Net.Net(28, x, 2);
             Random r = new Random();
-            var eps = .9; ;
+            var eps = .5; ;
             for(int i = 0; i < numberOfHands; i++)
             {
                 if(i % testInterval == 0)
@@ -78,6 +80,17 @@ namespace BlackJack
                 }
             }
 
+        }
+
+        static private void showPolicy(Net.Net n)
+        {
+            //Try each possible input and get the output.
+        }
+
+        static private int maxAction(float[] a)
+        {
+
+            return 1;
         }
 
         private static void testSimpleBlackjack(Net.Net net)
@@ -346,6 +359,8 @@ namespace BlackJack
             ret[27] = aceVal;
             return ret;
         }
+
+
 
             /*
         static private float[] testFunc(double a, double b, double c, double d)
