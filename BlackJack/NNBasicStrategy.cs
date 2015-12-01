@@ -11,6 +11,7 @@ namespace BlackJack
         Net.Net net;
         double eps;
         float[] lastInput;
+        float[] a;
         Random r;
         public NNBasicStrategy(Net.Net net, double eps = .9)
         {
@@ -27,19 +28,26 @@ namespace BlackJack
             var aceVal = playerHand.getAceValue();
 
             lastInput = genInputVec(playerVal, dealerShown, aceVal);
-            var a = net.forward(lastInput);
+            a = net.forward(lastInput);
             //eps greedy.
-            
+            if(playerVal < 10)
+            {
+                int k = 0;
+            }
             if(eps > r.NextDouble()) //choose best action
             {
-                if (a[0] > a[1])
-                    action = 0;
-                else
+                if(a[0] >= 0.5)
+                {
                     action = 1;
+                }
+                else
+                {
+                    action = 0;
+                }
             }
             else // choose worst
             {
-                if (a[0] > a[1])
+                if (a[0] <= 0.5)
                     action = 1;
                 else
                     action = 0;
@@ -53,7 +61,7 @@ namespace BlackJack
             int action = 0;
             var dealerVal = dealerHand.getValue();
 
-            if (dealerVal < 16) //hit 16 and less
+            if (dealerVal <= 16) //hit 16 and less
             {
                 action = 1;
             }
@@ -68,6 +76,8 @@ namespace BlackJack
 
         public void runBackwards(float[] goal)
         {
+           
+
             net.forward(lastInput);
             net.backward(goal);
         }

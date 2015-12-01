@@ -6,13 +6,11 @@ using System.Threading.Tasks;
 
 namespace BlackJack
 {
-    class BasicStrategy
+    class RandomStrategy
     {
-
-
-        public BasicStrategy()
+        public RandomStrategy()
         {
-            
+
         }
 
         //0 for stand, 1 for hit
@@ -29,7 +27,7 @@ namespace BlackJack
                 }
                 else if (playerVal == 18)
                 {
-                    if(dealerShown <= 8)
+                    if (dealerShown <= 8)
                     {
                         action = 0;
                     }
@@ -77,24 +75,25 @@ namespace BlackJack
                 }
             }
             return action;
-        } 
+        }
 
         public int chooseDealerAction(Hand dealerHand)
         {
             int action = 0;
             var dealerVal = dealerHand.getValue();
 
-            if(dealerVal <= 16) //hit 16 and less
+            if (dealerVal <= 16) //hit 16 and less
             {
                 action = 1;
             }
 
-            if(dealerVal >= 17) //stand 17 and more
+            if (dealerVal >= 17) //stand 17 and more
             {
                 action = 0;
             }
-           
+
             return action;
         }
+
     }
 }
