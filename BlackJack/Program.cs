@@ -52,6 +52,35 @@ namespace BlackJack
             writeToFile(runNum, percs, basic, random);
         }
 
+        private static void writeToFile(List<int> runNum, List<double> percs, List<double> basic, List<double> random)
+        {
+            using (System.IO.StreamWriter file =
+             new System.IO.StreamWriter("basicStrategyOut.csv"))
+            {
+                foreach (var run in runNum)
+                {
+                      file.Write(run + ",");
+                }
+                file.WriteLine();
+                foreach (var run in percs)
+                {
+                    file.Write(run + ",");
+                }
+                file.WriteLine();
+                foreach (var run in basic)
+                {
+                    file.Write(run + ",");
+                }
+                file.WriteLine();
+                foreach (var run in random)
+                {
+                    file.Write(run + ",");
+                }
+            }
+
+
+        }
+
         static private void showPolicy(Net.Net n)
         {
             var pol = new NNBasicStrategy(n, 1.0);
@@ -174,8 +203,13 @@ namespace BlackJack
 
                 if(totalHandsPlayed % 1000 == 0)
                 {
-                    var x = winLoss / (1.0 * numOfHands);
+                    var x = winLoss / (1000.0);
                     ret.Add(x);
+                    numWins = 0;
+                    numLosses = 0;
+                    numDraws = 0;
+                    numBlackJacks = 0;
+                    winLoss = 0.0;
                 }
             }
             Console.WriteLine("Wins: " + numWins);
@@ -407,8 +441,13 @@ namespace BlackJack
 
                 if(totalHandsPlayed % 1000 == 0)
                 {
-                    var x = winLoss / (1.0 * numOfHands);
+                    var x = winLoss / (1000.0);
                     ret.Add(x);
+                    numWins = 0;
+                    numLosses = 0;
+                    numDraws = 0;
+                    numBlackJacks = 0;
+                    winLoss = 0.0;
                 }
 
             }

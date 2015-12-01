@@ -8,71 +8,20 @@ namespace BlackJack
 {
     class RandomStrategy
     {
+        Random r;
         public RandomStrategy()
         {
-
+            r = new Random();
         }
 
         //0 for stand, 1 for hit
         public int choosePlayerAction(Hand playerHand, Hand dealerHand)
         {
-            int playerVal = playerHand.getValue();
-            int dealerShown = dealerHand.getDealerShowing();
-            int action = 1;
-            if (playerHand.getAceValue() == 1.0f) //softhand
+            var d =r.NextDouble();
+            var action = 0;
+            if(d > .5)
             {
-                if (playerVal <= 17)
-                {
-                    action = 1;
-                }
-                else if (playerVal == 18)
-                {
-                    if (dealerShown <= 8)
-                    {
-                        action = 0;
-                    }
-                    else
-                    {
-                        action = 0;
-                    }
-                }
-                else
-                {
-                    action = 1;
-                }
-            }
-            else //no soft
-            {
-                if (playerVal <= 11)
-                {
-                    action = 1;
-                }
-                else if (playerVal == 12)
-                {
-                    if (dealerShown == 4 || dealerShown == 5 || dealerShown == 6)
-                    {
-                        action = 0; //stand
-                    }
-                    else
-                    {
-                        action = 1;
-                    }
-                }
-                else if (playerVal >= 13 && playerVal <= 16)
-                {
-                    if (dealerShown <= 6)
-                    {
-                        action = 0;
-                    }
-                    else
-                    {
-                        action = 1;
-                    }
-                }
-                else // playerShown > 17
-                {
-                    action = 0;
-                }
+                action = 1;
             }
             return action;
         }
