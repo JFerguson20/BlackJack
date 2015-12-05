@@ -13,7 +13,7 @@ namespace BlackJack
         static void Main(string[] args)
         {   
             //simpleBasicStrategy(10000);
-            simpleBlackjack(1000000, 1000);
+            simpleBlackjack(10000000, 25000);
             int i = 0;
         }
         
@@ -29,7 +29,7 @@ namespace BlackJack
             //input, playersVal (17), dealersVal(10), playerHasAce(1)
             var net = new Net.Net(30, x, 1);
             Random r = new Random();
-            var eps = 1.0;
+            var eps = .9;
             //showPolicy(net);
             for (int i = 0; i < numberOfHands; i++)
             {
@@ -38,8 +38,8 @@ namespace BlackJack
                     var perc = NNsimpleBasicStrategy(net, 10000, 1.0);
                     percs.Add(perc);
                     runNum.Add(i);
-                    Console.WriteLine(perc);
-                    //showPolicy(net);
+                    Console.WriteLine(i + ": " +perc);
+                    showPolicy(net);
                 }
                 else
                 {
@@ -293,7 +293,7 @@ namespace BlackJack
                     {
                         numLosses++;
                         winLoss -= 1.0;
-                        reward = -1.0f;
+                        reward = 0.0f;
                     }
                     else
                     {
@@ -323,11 +323,11 @@ namespace BlackJack
                         else if (dealerHand.getValue() == playerHand.getValue()) //draw
                         {
                             numDraws++;
-                            reward = 0.0f;
+                            
                         }
                         else //we lost to dealer
                         {
-                            reward = -1.0f;
+                            reward = 0.0f;
                             numLosses++;
                             winLoss -= 1.0;
                         }

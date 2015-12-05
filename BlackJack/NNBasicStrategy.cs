@@ -114,7 +114,8 @@ namespace BlackJack
 
             float[] goal = new float[1];
             goal[0] = reward;
-            net.forward(actionPlusState(actionTaken, state));
+            var x = actionPlusState(actionTaken, state);
+            var y = net.forward(x);
             net.backward(goal);
         }
 
