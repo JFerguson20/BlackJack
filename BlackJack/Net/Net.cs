@@ -22,7 +22,7 @@ namespace BlackJack.Net
         /// <param name="hiddenSizes">Array of sizes of hidden layers. Example [10, 20, 10]</param>
         public Net(int numInputs, int[] hiddenSizes, int numOutputs)
         {
-           
+            numInputs += 2;// add the actions
             numHidden = hiddenSizes.Length;
             hiddenLayers = new Layer[numHidden];
             int prevSize = numInputs;

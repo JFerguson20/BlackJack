@@ -10,8 +10,9 @@ namespace BlackJack
     {
         Net.Net net;
         double eps;
-        float[] lastInput;
+        float[] state;
         float[] a;
+        int numActions = 2;
         Random r;
         public NNBasicStrategy(Net.Net net, double eps = .9)
         {
@@ -27,33 +28,67 @@ namespace BlackJack
             int dealerShown = dealerHand.getDealerShowing();
             var aceVal = playerHand.getAceValue();
 
-            lastInput = genInputVec(playerVal, dealerShown, aceVal);
-            a = net.forward(lastInput);
-            //eps greedy.
-            if(playerVal < 10)
+            state = genInputVec(playerVal, dealerShown, aceVal);
+            float[] qScores = new float[numActions];
+            for(int act = 0; act < numActions; act++)
             {
-                int k = 0;
+                var input = actionPlusState(act, state);
+                var a = net.forward(input);
+                qScores[act] = a[0];
             }
+
+            //do epsilon greedy action selection
             if(eps > r.NextDouble()) //choose best action
             {
-                if(a[0] >= 0.5)
-                {
-                    action = 1;
-                }
-                else
-                {
-                    action = 0;
-                }
+                action = getMaxAct(qScores); 
             }
             else // choose worst
             {
-                if (a[0] <= 0.5)
-                    action = 1;
-                else
-                    action = 0;
+                action = getExploreAction(qScores);
             }
 
             return action;
+        }
+
+        private int getExploreAction(float[] qScores)
+        {
+            float max = -1000.0f;
+            int maxI = -1;
+
+            for (int i = 0; i < qScores.Length; i++)
+            {
+                if (qScores[i] > max)
+                {
+                    max = qScores[i];
+                    maxI = i;
+                }
+            }
+
+            //now get a random worse action
+            var a = maxI;
+            while(a == maxI)
+            {
+                a = r.Next(0, qScores.Length);
+            }
+
+            return a;
+        }
+
+        private int getMaxAct(float[] qScores)
+        {
+            float max = -1000.0f;
+            int maxI = -1;
+
+            for(int i = 0; i < qScores.Length; i++)
+            {
+                if(qScores[i] > max)
+                {
+                    max = qScores[i];
+                    maxI = i;
+                }
+            }
+
+            return maxI;
         }
 
         public int chooseDealerAction(Hand dealerHand)
@@ -74,11 +109,12 @@ namespace BlackJack
             return action;
         }
 
-        public void runBackwards(float[] goal)
+        public void runBackwards(float reward, int actionTaken)
         {
-           
 
-            net.forward(lastInput);
+            float[] goal = new float[1];
+            goal[0] = reward;
+            net.forward(actionPlusState(actionTaken, state));
             net.backward(goal);
         }
 
@@ -122,6 +158,22 @@ namespace BlackJack
             }
             ret[27] = aceVal;
             return ret;
+        }
+
+        private float[] actionPlusState(int act, float[] state)
+        {
+            var x = new float[numActions];
+            for (int i = 0; i < numActions; i++)
+            {
+                x[i] = 0.0f;
+            }
+
+            x[act] = 1.0f; // set action we want to estimate
+
+            var z = new float[x.Length + state.Length];
+            state.CopyTo(z, 0);
+            x.CopyTo(z, state.Length);
+            return z;
         }
     }
 }

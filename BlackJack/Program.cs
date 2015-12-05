@@ -27,7 +27,7 @@ namespace BlackJack
             List<double> percs = new List<double>();
             List<int> runNum = new List<int>();
             //input, playersVal (17), dealersVal(10), playerHasAce(1)
-            var net = new Net.Net(28, x, 1);
+            var net = new Net.Net(30, x, 1);
             Random r = new Random();
             var eps = 1.0;
             //showPolicy(net);
@@ -38,7 +38,7 @@ namespace BlackJack
                     var perc = NNsimpleBasicStrategy(net, 10000, 1.0);
                     percs.Add(perc);
                     runNum.Add(i);
-                    Console.WriteLine(i);
+                    Console.WriteLine(perc);
                     //showPolicy(net);
                 }
                 else
@@ -227,7 +227,8 @@ namespace BlackJack
             double winLoss = 0.0; //-1 for loss, +1 for win. +1.5 for blackjack. 0 for draw
 
             //input, playersVal (17), dealersVal(10), playerHasAce(1)
-            float[] goal = { 0.0f};
+            float reward = 0.0f;
+            int actionTaken = 0;
             var policy = new NNBasicStrategy(net, eps);
             int numBlackJacks = 0;
             int numWins = 0;
@@ -265,8 +266,8 @@ namespace BlackJack
                 else
                 {
                     //player decisions
-                    var action = policy.choosePlayerAction(playerHand, dealerHand);
-                    while (action == 1)
+                    actionTaken = policy.choosePlayerAction(playerHand, dealerHand);
+                    while (actionTaken == 1)
                     {
                         playerHand.addCards(deck.getCard());
 
@@ -276,15 +277,15 @@ namespace BlackJack
                         }
                         else
                         {
-                            goal[0] = 1.0f;
+                            reward = 1.0f;
                             
                             if (isTraining)
                             {
-                                policy.runBackwards(goal);
+                                policy.runBackwards(reward,actionTaken);
                             }
                         }
 
-                        action = policy.choosePlayerAction(playerHand, dealerHand);
+                        actionTaken = policy.choosePlayerAction(playerHand, dealerHand);
                     }
 
                     //see if we busted
@@ -292,7 +293,7 @@ namespace BlackJack
                     {
                         numLosses++;
                         winLoss -= 1.0;
-                        goal[0] = 0.0f;
+                        reward = -1.0f;
                     }
                     else
                     {
@@ -308,24 +309,25 @@ namespace BlackJack
                         {
                             numWins++;
                             winLoss += 1.0;
-                            goal[0] = 0.0f;
+                            reward = 1.0f;
 
                         }
-                        else if (dealerHand.getValue() < playerHand.getValue())
+                        else if (dealerHand.getValue() < playerHand.getValue()) //we beat dealer
                         {
 
                             winLoss += 1.0f;
-                            goal[0] = 0.0f;
+                            reward = 1.0f;
                             numWins++;
                             
                         }
-                        else if (dealerHand.getValue() == playerHand.getValue())
+                        else if (dealerHand.getValue() == playerHand.getValue()) //draw
                         {
                             numDraws++;
+                            reward = 0.0f;
                         }
-                        else
+                        else //we lost to dealer
                         {
-                            goal[0] = 1.0f;
+                            reward = -1.0f;
                             numLosses++;
                             winLoss -= 1.0;
                         }
@@ -338,7 +340,7 @@ namespace BlackJack
             if(isTraining)
             {
                 if(numDraws == 0 && numBlackJacks != 1 && !noForwardPass)
-                    policy.runBackwards(goal);
+                    policy.runBackwards(reward, actionTaken);
             }
 
             /*
