@@ -46,10 +46,10 @@ namespace BlackJack
                     NNsimpleBasicStrategy(net, 1, eps, true);
                 }
             }
-
-            var basic = simpleBasicStrategy(1000000);
-            var random = simpleRandomStrategy(1000000);
-            writeToFile(runNum, percs, basic, random);
+            showPolicy(net);
+            //var basic = simpleBasicStrategy(1000000);
+            //var random = simpleRandomStrategy(1000000);
+            //writeToFile(runNum, percs, basic, random);
         }
 
         private static void writeToFile(List<int> runNum, List<double> percs, List<double> basic, List<double> random)
