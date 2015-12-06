@@ -13,7 +13,7 @@ namespace BlackJack
         static void Main(string[] args)
         {   
             //simpleBasicStrategy(10000);
-            simpleBlackjack(10000000, 25000);
+            simpleBlackjack(10000000, 10000);
             int i = 0;
         }
         
@@ -23,7 +23,7 @@ namespace BlackJack
         static private void simpleBlackjack(int numberOfHands, int testInterval)
         {
 
-            int[] x = {20,20};
+            int[] x = {100};
             List<double> percs = new List<double>();
             List<int> runNum = new List<int>();
             //input, playersVal (17), dealersVal(10), playerHasAce(1)
@@ -39,12 +39,19 @@ namespace BlackJack
                     percs.Add(perc);
                     runNum.Add(i);
                     Console.WriteLine(i + ": " +perc);
-                    showPolicy(net);
+                    //set learning rate to perc
+                    NetCore.learningRate = -1.0f * (float) (perc / 3.0);
+                    Console.WriteLine(NetCore.learningRate);
+                    //showPolicy(net);
                 }
                 else
                 {
                     NNsimpleBasicStrategy(net, 1, eps, true);
                 }
+
+                if(i % 50000 == 0)
+                    showPolicy(net);
+
             }
             showPolicy(net);
             //var basic = simpleBasicStrategy(1000000);
@@ -267,25 +274,28 @@ namespace BlackJack
                 {
                     //player decisions
                     actionTaken = policy.choosePlayerAction(playerHand, dealerHand);
+
+                        
                     while (actionTaken == 1)
                     {
                         playerHand.addCards(deck.getCard());
 
-                        if(playerHand.getValue() > 21)
+                        if (playerHand.getValue() > 21)
                         {
                             break;
                         }
                         else
                         {
-                            reward = 1.0f;
-                            
+  
                             if (isTraining)
                             {
-                                policy.runBackwards(reward,actionTaken);
+                                policy.runBackwardsHit(playerHand, dealerHand);
                             }
                         }
 
+                        //need to do delayed reward.
                         actionTaken = policy.choosePlayerAction(playerHand, dealerHand);
+
                     }
 
                     //see if we busted
@@ -293,7 +303,7 @@ namespace BlackJack
                     {
                         numLosses++;
                         winLoss -= 1.0;
-                        reward = 0.0f;
+                        reward = -1.0f;
                     }
                     else
                     {
@@ -323,11 +333,11 @@ namespace BlackJack
                         else if (dealerHand.getValue() == playerHand.getValue()) //draw
                         {
                             numDraws++;
-                            
+                            reward = 0.0f;
                         }
                         else //we lost to dealer
                         {
-                            reward = 0.0f;
+                            reward = -1.0f;
                             numLosses++;
                             winLoss -= 1.0;
                         }

@@ -10,14 +10,18 @@ namespace BlackJack
     {
         Net.Net net;
         double eps;
+        double lambda = .5;
         float[] state;
         float[] a;
         int numActions = 2;
         Random r;
-        public NNBasicStrategy(Net.Net net, double eps = .9)
+
+
+        public NNBasicStrategy(Net.Net net, double eps = .9, double lambda = .5)
         {
             this.net = net;
             this.eps = eps;
+            this.lambda = .5;
             r = new Random();
         }
         //0 for stand, 1 for hit
@@ -116,6 +120,45 @@ namespace BlackJack
             goal[0] = reward;
             var x = actionPlusState(actionTaken, state);
             var y = net.forward(x);
+            net.backward(goal);
+        }
+
+        public void runBackwardsHit(Hand newPlayer, Hand newDealer)
+        {
+            //get Q value from hitting
+            var x = actionPlusState(1, state); 
+            var q = net.forward(x);
+
+            //get next Q value
+            int playerVal = newPlayer.getValue();
+            int dealerShown = newDealer.getDealerShowing();
+            var aceVal = newPlayer.getAceValue();
+
+            var newState = genInputVec(playerVal, dealerShown, aceVal);
+
+            float[] qScores = new float[numActions];
+            for (int act = 0; act < numActions; act++)
+            {
+                var input = actionPlusState(act, newState);
+                var a = net.forward(input);
+                qScores[act] = a[0];
+            }
+
+            //find max Q
+            float max = -1000.0f;
+
+            for (int i = 0; i < qScores.Length; i++)
+            {
+                if (qScores[i] > max)
+                    max = qScores[i];
+            }
+
+            //discount reward
+            var target = lambda * (max - q[0]);
+            //back propagate
+            float[] goal = new float[1];
+            goal[0] = (float)target;
+            net.forward(x);
             net.backward(goal);
         }
 

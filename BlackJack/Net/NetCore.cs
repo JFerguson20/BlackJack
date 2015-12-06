@@ -11,8 +11,8 @@ namespace BlackJack.Net
     /// </summary>
     static class NetCore
     {
-        public static float learningRate = .1f;
-        public static float momentum = .1f;
+        public static float learningRate = .5f;
+        public static float momentum = 0.0f;
         public static Random r = new Random();
         public static int mode = CPU;
         public const int CPU = 0;

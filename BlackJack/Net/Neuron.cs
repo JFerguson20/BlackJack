@@ -46,6 +46,9 @@ namespace BlackJack.Net
         {
             inputs = (float[])prevVals.Clone();
             value = CpuFuncs.sigmoid(CpuFuncs.inner_product(weights, inputs));
+
+            if(isOutput) //linear if output
+                value = CpuFuncs.inner_product(weights, inputs);
         }
 
         public void backward(float goal, float[] nextWeight = null)
@@ -65,7 +68,7 @@ namespace BlackJack.Net
             float derivitive = CpuFuncs.sigmoid_prime(value);
             if(isOutput)
             {
-                gradient = derivitive * (goal - value);
+                gradient = (goal - value);
             }
             else
             {
