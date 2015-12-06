@@ -73,5 +73,31 @@ namespace BlackJack
             }
             return ret;
         }
+
+        public bool canSplit()
+        {
+            var ret = false;
+            if(cards.Count == 2)
+            {
+                //if cards are same
+                if (cards[0] == cards[1])
+                {
+                    ret = true;
+                }
+
+                //check for aces
+                if ((cards[0] == 11 && cards[1] == 1) || (cards[0] == 1 && cards[1] == 11))
+                {
+                    ret = true;
+                }
+            }
+
+            return ret;
+        }
+
+        public bool canDouble()
+        {
+            return (cards.Count == 2); // can only double off the beginning
+        }
     }
 }

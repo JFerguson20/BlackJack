@@ -40,7 +40,10 @@ namespace BlackJack
                     runNum.Add(i);
                     Console.WriteLine(i + ": " +perc);
                     //set learning rate to perc
-                    NetCore.learningRate = -1.0f * (float) (perc / 3.0);
+                    NetCore.learningRate = -1.0f * (float) (perc / 5.0);
+                    if (NetCore.learningRate < .07f)
+                        NetCore.learningRate = .07f;
+
                     Console.WriteLine(NetCore.learningRate);
                     //showPolicy(net);
                 }
@@ -234,13 +237,8 @@ namespace BlackJack
             double winLoss = 0.0; //-1 for loss, +1 for win. +1.5 for blackjack. 0 for draw
 
             //input, playersVal (17), dealersVal(10), playerHasAce(1)
-            float reward = 0.0f;
-            int actionTaken = 0;
             var policy = new NNBasicStrategy(net, eps);
-            int numBlackJacks = 0;
-            int numWins = 0;
-            int numDraws = 0;
-            int numLosses = 0;
+
             bool noForwardPass = false; 
             //do each hand
             for (totalHandsPlayed = 0; totalHandsPlayed < numOfHands; totalHandsPlayed++)
@@ -255,104 +253,9 @@ namespace BlackJack
                 playerHand.addCards(deck.getCard());
                 dealerHand.addCards(deck.getCard());
 
-
-                if (playerHand.getValue() == 21 && dealerHand.getValue() != 21)
-                {
-                    //BLACK JACK
-                    numBlackJacks++;
-                    winLoss += 1.5;
-                    noForwardPass = true;
-                }
-                else if (dealerHand.getValue() == 21)
-                {
-                    //Dealer BJ
-                    numLosses++;
-                    winLoss -= 1.0;
-                    noForwardPass = true;
-                }
-                else
-                {
-                    //player decisions
-                    actionTaken = policy.choosePlayerAction(playerHand, dealerHand);
-
-                        
-                    while (actionTaken == 1)
-                    {
-                        playerHand.addCards(deck.getCard());
-
-                        if (playerHand.getValue() > 21)
-                        {
-                            break;
-                        }
-                        else
-                        {
-  
-                            if (isTraining)
-                            {
-                                policy.runBackwardsHit(playerHand, dealerHand);
-                            }
-                        }
-
-                        //need to do delayed reward.
-                        actionTaken = policy.choosePlayerAction(playerHand, dealerHand);
-
-                    }
-
-                    //see if we busted
-                    if (playerHand.getValue() > 21)
-                    {
-                        numLosses++;
-                        winLoss -= 1.0;
-                        reward = -1.0f;
-                    }
-                    else
-                    {
-                        //play dealer
-                        var dealerAction = policy.chooseDealerAction(dealerHand);
-                        while (dealerAction == 1)
-                        {
-                            dealerHand.addCards(deck.getCard());
-                            dealerAction = policy.chooseDealerAction(dealerHand);
-                        }
-
-                        if (dealerHand.getValue() > 21) //dealer busts
-                        {
-                            numWins++;
-                            winLoss += 1.0;
-                            reward = 1.0f;
-
-                        }
-                        else if (dealerHand.getValue() < playerHand.getValue()) //we beat dealer
-                        {
-
-                            winLoss += 1.0f;
-                            reward = 1.0f;
-                            numWins++;
-                            
-                        }
-                        else if (dealerHand.getValue() == playerHand.getValue()) //draw
-                        {
-                            numDraws++;
-                            reward = 0.0f;
-                        }
-                        else //we lost to dealer
-                        {
-                            reward = -1.0f;
-                            numLosses++;
-                            winLoss -= 1.0;
-                        }
-
-                    }
-                }
-
+                playHand(ref deck, playerHand, dealerHand, ref policy, ref winLoss, isTraining);
             }
             
-            if(isTraining)
-            {
-                if(numDraws == 0 && numBlackJacks != 1 && !noForwardPass)
-                    policy.runBackwards(reward, actionTaken);
-            }
-
             /*
             Console.WriteLine("Wins: " + numWins);
             Console.WriteLine("Losses: " + numLosses);
@@ -364,6 +267,138 @@ namespace BlackJack
             */
             var x = winLoss / (1.0 * numOfHands);
             return x;
+        }
+
+        private static int playDealer(ref Deck deck, ref Hand dealerHand)
+        {
+            var policy = new DealerPolicy();
+            //play dealer
+            var dealerAction = policy.chooseDealerAction(dealerHand);
+            while (dealerAction == 1)
+            {
+                dealerHand.addCards(deck.getCard());
+                dealerAction = policy.chooseDealerAction(dealerHand);
+            }
+
+            return dealerHand.getValue(); // return value of dealer hand.
+        }
+        
+        private static float playHand(ref Deck deck, Hand playerHand, Hand dealerHand, ref NNBasicStrategy policy, ref double winLoss, bool isTraining)
+        {
+            var reward = 0.0f;
+            var mult = 1.0f;
+            //check for blackjack.
+            if (playerHand.getValue() == 21 && dealerHand.getValue() != 21)
+            {
+                winLoss += 1.5;
+                return 1.5f;
+            }
+            else if (dealerHand.getValue() == 21) //dealer got blackjack
+            {
+                winLoss -= 1.0;
+                return 0.0f;
+            }
+            else 
+            {
+                //player decisions
+                var actionTaken = policy.choosePlayerAction(playerHand, dealerHand);
+
+                if (actionTaken == 1)//hit
+                {
+                    playHit(ref deck, ref playerHand, dealerHand, ref policy, isTraining);
+
+                    if (playerHand.getValue() > 21)
+                    {
+                        winLoss -= 1.0;
+                        reward = -1.0f;
+                    }
+                    else
+                    {
+                        actionTaken = 0;
+                    }
+
+                }
+                else if (actionTaken == 2) //double
+                {
+                    playerHand.addCards(deck.getCard());
+                    if (playerHand.getValue() > 21)
+                    {
+                        winLoss -= 2.0;
+                        reward = -1.0f;
+                        mult = 2.0f;
+                    }
+                    else
+                    {
+                        mult = 2.0f;
+                        actionTaken = 0;
+                    }
+                }
+                else if (actionTaken == 3) //split
+                {
+
+                }
+                if(actionTaken == 0) //stand
+                {
+                    //play dealer
+                    var dealerVal = playDealer(ref deck, ref dealerHand);
+                    if (dealerVal > 21) //dealer busts
+                    {
+                        winLoss += 1.0 * mult;
+                        reward = 1.0f * mult;
+
+                    }
+                    else if (dealerVal < playerHand.getValue()) //we beat dealer
+                    {
+
+                        winLoss += 1.0f * mult;
+                        reward = 1.0f * mult;
+                    }
+                    else if (dealerVal == playerHand.getValue()) //draw
+                    {
+                        reward = 0.0f;
+                    }
+                    else //we lost to dealer
+                    {
+                        reward = -1.0f * mult;
+                        winLoss -= 1.0 * mult;
+                    }
+                }
+
+                if (isTraining)
+                {
+                    if (mult == 2.0f)
+                        actionTaken = 2;
+
+                    policy.runBackwards(reward, actionTaken);
+                }
+
+            }
+
+            return reward;
+        }
+
+        private static void playHit(ref Deck deck, ref Hand playerHand, Hand dealerHand, ref NNBasicStrategy policy, bool isTraining)
+        {
+            var actionTaken = 1;
+            while (actionTaken == 1) // hit
+            {
+                playerHand.addCards(deck.getCard());
+
+                if (playerHand.getValue() > 21)
+                {
+                    break;
+                }
+                else
+                {
+                    if (isTraining)
+                    {
+                        policy.runBackwardsHit(playerHand, dealerHand);
+                    }
+                }
+
+                //need to do delayed reward.
+                actionTaken = policy.choosePlayerAction(playerHand, dealerHand);
+            }
         }
 
         private static List<double> simpleRandomStrategy(int numOfHands)

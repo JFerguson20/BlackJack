@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BasicStrategy.cs" />
+    <Compile Include="DealerPolicy.cs" />
     <Compile Include="Deck.cs" />
     <Compile Include="Hand.cs" />
     <Compile Include="Net\CpuFuncs.cs" />
