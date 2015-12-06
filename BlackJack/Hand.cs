@@ -97,7 +97,7 @@ namespace BlackJack
 
         public bool canDouble()
         {
-            return (cards.Count == 2); // can only double off the beginning
+            return (cards.Count <= 2); // can only double off the beginning
         }
     }
 }

@@ -26,8 +26,8 @@ namespace BlackJack
             int[] x = {100};
             List<double> percs = new List<double>();
             List<int> runNum = new List<int>();
-            //input, playersVal (17), dealersVal(10), playerHasAce(1)
-            var net = new Net.Net(30, x, 1);
+            //input, playersVal (17), dealersVal(10), playerHasAce(1), actions(3)
+            var net = new Net.Net(31, x, 1);
             Random r = new Random();
             var eps = .9;
             //showPolicy(net);
@@ -41,9 +41,9 @@ namespace BlackJack
                     Console.WriteLine(i + ": " +perc);
                     //set learning rate to perc
                     NetCore.learningRate = -1.0f * (float) (perc / 5.0);
-                    if (NetCore.learningRate < .07f)
-                        NetCore.learningRate = .07f;
-
+                    if (NetCore.learningRate < 0.0f)
+                        NetCore.learningRate = .001f;
+                    
                     Console.WriteLine(NetCore.learningRate);
                     //showPolicy(net);
                 }
@@ -255,16 +255,7 @@ namespace BlackJack
 
                 playHand(ref deck, playerHand, dealerHand, ref policy, ref winLoss, isTraining);
             }
-            
-            /*
-            Console.WriteLine("Wins: " + numWins);
-            Console.WriteLine("Losses: " + numLosses);
-            Console.WriteLine("Draws: " + numDraws);
-            Console.WriteLine("BJ: " + numBlackJacks);
-            Console.WriteLine("WinLoss: " + winLoss);
-            
-            Console.WriteLine("%: " + x);
-            */
+
             var x = winLoss / (1.0 * numOfHands);
             return x;
         }
@@ -335,7 +326,7 @@ namespace BlackJack
                 }
                 else if (actionTaken == 3) //split
                 {
-
+                    
                 }
                 if(actionTaken == 0) //stand
                 {

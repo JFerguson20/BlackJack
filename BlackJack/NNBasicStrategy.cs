@@ -13,7 +13,7 @@ namespace BlackJack
         double lambda = .5;
         float[] state;
         float[] a;
-        int numActions = 2;
+        int numActions = 3;
         Random r;
 
 
@@ -44,23 +44,27 @@ namespace BlackJack
             //do epsilon greedy action selection
             if(eps > r.NextDouble()) //choose best action
             {
-                action = getMaxAct(qScores); 
+                action = getMaxAct(qScores, playerHand); 
             }
             else // choose worst
             {
-                action = getExploreAction(qScores);
+                action = getExploreAction(qScores, playerHand);
             }
 
             return action;
         }
 
-        private int getExploreAction(float[] qScores)
+        private int getExploreAction(float[] qScores, Hand playerHand)
         {
-            float max = -1000.0f;
+            float max = -10000000.0f;
             int maxI = -1;
-
+            bool canDub = playerHand.canDouble();
+            bool canSpl = playerHand.canSplit();
             for (int i = 0; i < qScores.Length; i++)
             {
+                if(i == 2 && !canDub)
+                    continue;
+
                 if (qScores[i] > max)
                 {
                     max = qScores[i];
@@ -70,7 +74,7 @@ namespace BlackJack
 
             //now get a random worse action
             var a = maxI;
-            while(a == maxI)
+            while(a == maxI || ((!canDub && a == 2) && (!canSpl && a == 3)))
             {
                 a = r.Next(0, qScores.Length);
             }
@@ -78,14 +82,17 @@ namespace BlackJack
             return a;
         }
 
-        private int getMaxAct(float[] qScores)
+        private int getMaxAct(float[] qScores, Hand playerHand)
         {
-            float max = -1000.0f;
+            float max = -10000000.0f;
             int maxI = -1;
-
-            for(int i = 0; i < qScores.Length; i++)
+            bool canDub = playerHand.canDouble();
+            bool canSpl = playerHand.canSplit();
+            for (int i = 0; i < qScores.Length; i++)
             {
-                if(qScores[i] > max)
+                if (i == 2 && !canDub)
+                    continue;
+                if (qScores[i] > max)
                 {
                     max = qScores[i];
                     maxI = i;
@@ -119,7 +126,7 @@ namespace BlackJack
             var newState = genInputVec(playerVal, dealerShown, aceVal);
 
             float[] qScores = new float[numActions];
-            for (int act = 0; act < numActions; act++)
+            for (int act = 0; act < 2; act++)
             {
                 var input = actionPlusState(act, newState);
                 var a = net.forward(input);
@@ -129,7 +136,7 @@ namespace BlackJack
             //find max Q
             float max = -1000.0f;
 
-            for (int i = 0; i < qScores.Length; i++)
+            for (int i = 0; i < 2; i++)
             {
                 if (qScores[i] > max)
                     max = qScores[i];
@@ -137,6 +144,10 @@ namespace BlackJack
 
             //discount reward
             var target = lambda * (max - q[0]);
+            if(target > 0.0f)
+            {
+                var i = 1;
+            }
             //back propagate
             float[] goal = new float[1];
             goal[0] = (float)target;
