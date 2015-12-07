@@ -67,7 +67,25 @@ namespace BlackJack
                 return action;
 
             var ret = action;
+            var playerVal = playerHand.getValue();
+            var dealerShown = dealerHand.getDealerShowing();
 
+            if (playerVal == 12 && playerHand.getAceValue() == 1.0f) //AA
+                ret = 3;
+            else if (playerVal == 18 && (dealerShown <= 6 || dealerShown == 8 || dealerShown == 9))
+                ret = 3;
+            else if (playerVal == 16)
+                ret = 3;
+            else if (playerVal == 14 && dealerShown <= 7)
+                ret = 3;
+            else if (playerVal == 12 && dealerShown <= 6)
+                ret = 3;
+            else if (playerVal == 8 && (dealerShown == 5 || dealerShown == 6))
+                ret = 3;
+            else if (playerVal == 6 && (dealerShown <= 7))
+                ret = 3;
+            else if (playerVal == 4 && (dealerShown <= 7))
+                ret = 3;
             return ret;
         }
 

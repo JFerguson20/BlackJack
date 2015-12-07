@@ -10,19 +10,20 @@ namespace BlackJack
 {
     class Deck
     {
-        List<int> cardsLeft; 
-
+        List<int> cardsLeft;
+        int count;
         public Deck(int numDecks)
         {
             cardsLeft = new List<int>();
-            createCards(numDecks); 
+            createCards(numDecks);
+            count = 0;
         }
 
         private void createCards(int numDecks)
         {
             for(int i = 0; i < numDecks; i++)
             {   
-                //add cards 1-9 (ace through 9)
+                //add cards 2-9 (2 through 9)
                 for(int card = 2; card <10; card++)
                 {
                     //each suit
@@ -40,6 +41,7 @@ namespace BlackJack
                         cardsLeft.Add(10);
                     }
                 }
+                //add aces
                 for(int a = 0; a < 4; a++)
                 {
                     cardsLeft.Add(11);
@@ -64,6 +66,35 @@ namespace BlackJack
         {
             var ret = cardsLeft[0];
             cardsLeft.RemoveAt(0);
+
+            //for card counting
+            if (ret <= 6)
+                count++;
+
+            if (ret >= 10)
+            {
+                count--;
+            }
+
+            return ret;
+        }
+
+        public double getTrueCount()
+        {
+            //get decks left
+            var decksLeft = (1.0 * cardsLeft.Count) / (1.0 * 52);
+            var trueCount = (count * 1.0) / decksLeft;
+            return trueCount;
+        }
+
+        //if less then a deck left then deck is done
+        public bool isDeckFinished()
+        {
+            var ret = false;
+            if(cardsLeft.Count < 52)
+            {
+                ret = true;
+            }
             return ret;
         }
     }

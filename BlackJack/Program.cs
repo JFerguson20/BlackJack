@@ -12,8 +12,8 @@ namespace BlackJack
        
         static void Main(string[] args)
         {   
-            //var x = simpleBasicStrategy(100000);
-            simpleBlackjack(10000000, 50000);
+            var x = simpleBasicStrategy(10000000);
+            //simpleBlackjack(10000000, 50000);
             int i = 0;
         }
         
@@ -26,6 +26,7 @@ namespace BlackJack
             int[] x = {150};
             List<double> percs = new List<double>();
             List<int> runNum = new List<int>();
+            //+9 card coupts
             //input, playersVal (17), dealersVal(10), playerHasAce(1), doubleFlag(1), spltFlag(1), actions(4)
             var net = new Net.Net(32, x, 1);
             Random r = new Random();
@@ -163,10 +164,22 @@ namespace BlackJack
             double winLoss = 0.0; //-1 for loss, +1 for win. +1.5 for blackjack. 0 for draw
             var policy = new BasicStrategy();
             //do each hand
+            Deck deck = new Deck(6);
+            deck.shuffleCards();
             for (totalHandsPlayed = 0; totalHandsPlayed < numOfHands; totalHandsPlayed++)
             {
-                Deck deck = new Deck(6);
-                deck.shuffleCards();
+                if (deck.isDeckFinished())
+                {
+                    deck = new Deck(6);
+                    deck.shuffleCards();
+                }
+
+                //decide bet
+                var trueCount = deck.getTrueCount();
+                var bet = 1.0;
+                if (trueCount > 2)
+                    bet = 10.0;
+
                 Hand playerHand = new Hand();
                 Hand dealerHand = new Hand();
                 //deal initial cards
@@ -174,7 +187,7 @@ namespace BlackJack
                 dealerHand.addCards(deck.getCard());
                 playerHand.addCards(deck.getCard());
                 dealerHand.addCards(deck.getCard());
-                playHandBasic(ref deck, playerHand, ref dealerHand, ref policy, ref winLoss);
+                playHandBasic(ref deck, playerHand, ref dealerHand, ref policy, ref winLoss, bet);
             }
             var x = winLoss / (numOfHands);
             return x;
@@ -223,20 +236,20 @@ namespace BlackJack
             return dealerHand.getValue(); // return value of dealer hand.
         }
         
-        private static float playHandBasic(ref Deck deck, Hand playerHand, ref Hand dealerHand, ref BasicStrategy policy, ref double winLoss)
+        private static float playHandBasic(ref Deck deck, Hand playerHand, ref Hand dealerHand, ref BasicStrategy policy, ref double winLoss, double bet)
         {
             var reward = 0.0f;
             var mult = 1.0f;
             //check for blackjack.
             if (playerHand.getValue() == 21 && dealerHand.getValue() != 21)
             {
-                winLoss += 1.5;
-                return 1.5f;
+                winLoss += 1.5 * bet;
+                return 1.5f * (float)bet;
             }
             else if (dealerHand.getValue() == 21) //dealer got blackjack
             {
-                winLoss -= 1.0;
-                return 0.0f;
+                winLoss -= 1.0 * bet;
+                return -1.0f * (float)bet;
             }
             else
             {
@@ -255,7 +268,7 @@ namespace BlackJack
                     //see if we busted
                     if (playerHand.getValue() > 21)
                     {
-                        winLoss -= 1.0;
+                        winLoss -= 1.0 * bet;
                     }
                     else
                     {
@@ -268,8 +281,8 @@ namespace BlackJack
                     playerHand.addCards(deck.getCard());
                     if (playerHand.getValue() > 21)
                     {
-                        winLoss -= 2.0;
-                        reward = -1.0f;
+                        winLoss -= 2.0 * bet;
+                        reward = -1.0f * (float)bet;
                         mult = 2.0f;
                     }
                     else
@@ -291,8 +304,8 @@ namespace BlackJack
                     pH2.addCards(deck.getCard());
 
                     //win loss for the hands
-                    reward = playHandBasic(ref deck, pH1, ref dealerHand, ref policy, ref winLoss);
-                    reward += playHandBasic(ref deck, pH2, ref dealerHand, ref policy, ref winLoss);
+                    reward = playHandBasic(ref deck, pH1, ref dealerHand, ref policy, ref winLoss, bet);
+                    reward += playHandBasic(ref deck, pH2, ref dealerHand, ref policy, ref winLoss, bet);
 
                     winLoss += reward;
                 }
@@ -302,23 +315,23 @@ namespace BlackJack
                     var dealerVal = playDealer(ref deck, ref dealerHand);
                     if (dealerVal > 21) //dealer busts
                     {
-                        winLoss += 1.0 * mult;
-                        reward = 1.0f * mult;
-
+                        winLoss += 1.0 * mult * bet;
+                        reward = 1.0f * mult * (float)bet;
+                        
                     }
                     else if (dealerVal < playerHand.getValue()) //we beat dealer
                     {
-                        winLoss += 1.0f * mult;
-                        reward = 1.0f * mult;
+                        winLoss += 1.0f * mult * bet;
+                        reward = 1.0f * mult * (float)bet;
                     }
                     else if (dealerVal == playerHand.getValue()) //draw
                     {
                         reward = 0.0f;
                     }
                     else //we lost to dealer
-                    {
-                        reward = -1.0f * mult;
-                        winLoss -= 1.0 * mult;
+                    {                     
+                        winLoss -= 1.0 * mult * bet;
+                        reward = -1.0f * mult * (float)bet;
                     }
                 }
             }
@@ -393,7 +406,7 @@ namespace BlackJack
                     reward += playHand(ref deck, pH2, ref dealerHand, ref policy, ref winLoss, isTraining);
 
                     winLoss += reward;
-                    policy.runBackwards(reward, actionTaken);
+                    //policy.runBackwards(reward, actionTaken);
                 }
                 if(actionTaken == 0) //stand
                 {
@@ -426,8 +439,8 @@ namespace BlackJack
                 {
                     if (mult == 2.0f)
                         actionTaken = 2;
-
-                    policy.runBackwards(reward, actionTaken);
+                    if (actionTaken != 3)
+                        policy.runBackwards(reward, actionTaken);
                 }
 
             }

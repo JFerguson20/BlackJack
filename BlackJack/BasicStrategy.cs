@@ -35,7 +35,7 @@ namespace BlackJack
                     }
                     else
                     {
-                        action = 0;
+                        action = 1;
                     }
                 }
                 else
@@ -79,7 +79,7 @@ namespace BlackJack
             //do the double checks        
             if (playerHand.canDouble())
             {         
-                if (playerVal == 11)
+                if (playerVal == 11 && dealerShown != 11)
                     action = 2;
                 else  if (playerVal == 10 && dealerShown <= 9)
                     action = 2;
@@ -99,10 +99,9 @@ namespace BlackJack
                         action = 2;
                     else if (playerVal == 17 && (dealerShown == 3 || dealerShown == 4 || dealerShown == 5 || dealerShown == 6))
                         action = 2;
-                    else if (playerVal == 18 && (dealerShown <= 6))
+                    else if (playerVal == 18 && (dealerShown == 3 || dealerShown == 4 || dealerShown == 5 || dealerShown == 6))
                         action = 2;
-                    else if (playerVal == 19 && (dealerShown == 6))
-                        action = 2;
+
                 }
             }
 
@@ -117,9 +116,7 @@ namespace BlackJack
                     action = 3;
                 else if (playerVal == 14 && dealerShown <= 7)
                     action = 3;
-                else if (playerVal == 12 && dealerShown <= 6)
-                    action = 3;
-                else if (playerVal == 8 && (dealerShown == 5 || dealerShown == 6))
+                else if (playerVal == 12 && (dealerShown == 3 || dealerShown == 4 || dealerShown == 5 || dealerShown == 6))
                     action = 3;
                 else if (playerVal == 6 && (dealerShown <= 7))
                     action = 3;
