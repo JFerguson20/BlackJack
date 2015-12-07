@@ -97,6 +97,29 @@ namespace BlackJack
             }
             return ret;
         }
+
+        public float[] getDeckPercentages()
+        {
+            float[] ret = new float[9];
+
+            for(int i = 2; i < 11; i++)
+            {
+                //count how many times appears
+                var c = 0;
+                foreach(var card in cardsLeft)
+                {
+                    if (card == i)
+                        c++;
+                }
+                if (i != 10)
+                    ret[i - 2] = (float) ((c * 1.0) / (24.0));
+                else
+                    ret[8] = (float)((c * 1.0) / (96.0));
+
+            }
+
+            return ret;
+        }
     }
 
     public static class ThreadSafeRandom

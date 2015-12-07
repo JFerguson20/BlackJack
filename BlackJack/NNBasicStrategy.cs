@@ -25,7 +25,7 @@ namespace BlackJack
             r = new Random();
         }
         //0 for stand, 1 for hit
-        public int choosePlayerAction(Hand playerHand, Hand dealerHand)
+        public int choosePlayerAction(Hand playerHand, Hand dealerHand, Deck deck)
         {
             int action = 0;
             int playerVal = playerHand.getValue();
@@ -37,7 +37,7 @@ namespace BlackJack
             var splVal = 0.0f;
             if (playerHand.canSplit())
                 splVal = 1.0f;
-            state = genInputVec(playerVal, dealerShown, aceVal, dubVal, splVal);
+            state = genInputVec(playerVal, dealerShown, deck, aceVal, dubVal, splVal);
             float[] qScores = new float[numActions];
             for(int act = 0; act < numActions; act++)
             {
@@ -174,7 +174,7 @@ namespace BlackJack
             net.backward(goal);
         }
 
-        public void runBackwardsHit(Hand newPlayer, Hand newDealer)
+        public void runBackwardsHit(Hand newPlayer, Hand newDealer, Deck deck)
         {
             //get Q value from hitting
             var x = actionPlusState(1, state); 
@@ -185,7 +185,7 @@ namespace BlackJack
             int dealerShown = newDealer.getDealerShowing();
             var aceVal = newPlayer.getAceValue();
 
-            var newState = genInputVec(playerVal, dealerShown, aceVal, 0.0f, 0.0f);
+            var newState = genInputVec(playerVal, dealerShown, deck, aceVal, 0.0f, 0.0f);
 
             float[] qScores = new float[numActions];
             for (int act = 0; act < 2; act++)
@@ -241,26 +241,30 @@ namespace BlackJack
             return ret;
         }
 
-        private static float[] genInputVec(int playerVal, int dealerShowing, float aceVal, float dubVal, float splVal)
+        private static float[] genInputVec(int playerVal, int dealerShowing, Deck deck, float aceVal, float dubVal, float splVal)
         {
-            float[] ret = new float[29];
+            float[] ret = new float[38];
 
             var playerVec = playerValVec(playerVal);
             var dealerVec = dealerValVec(dealerShowing);
-
-            for (int i = 0; i < 27; i++)
+            var cardCountVec = deck.getDeckPercentages();
+            for (int i = 0; i < ret.Length - 2; i++)
             {
                 if (i < playerVec.Length)
                 {
                     ret[i] = playerVec[i];
                 }
-                else
+                else if(i < playerVec.Length + dealerVec.Length)
                 {
                     ret[i] = dealerVec[i - playerVec.Length];
                 }
+                else
+                {
+                    ret[i] = cardCountVec[i - (playerVec.Length + dealerVec.Length)];
+                }
             }
-            ret[27] = aceVal;
-            ret[28] = dubVal;
+            ret[36] = aceVal;
+            ret[37] = dubVal;
             //ret[29] = splVal;
             return ret;
         }
