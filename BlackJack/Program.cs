@@ -12,8 +12,8 @@ namespace BlackJack
        
         static void Main(string[] args)
         {   
-            //simpleBasicStrategy(10000);
-            simpleBlackjack(10000000, 10000);
+            //var x = simpleBasicStrategy(100000);
+            simpleBlackjack(10000000, 50000);
             int i = 0;
         }
         
@@ -23,13 +23,13 @@ namespace BlackJack
         static private void simpleBlackjack(int numberOfHands, int testInterval)
         {
 
-            int[] x = {100};
+            int[] x = {150};
             List<double> percs = new List<double>();
             List<int> runNum = new List<int>();
-            //input, playersVal (17), dealersVal(10), playerHasAce(1), actions(3)
-            var net = new Net.Net(31, x, 1);
+            //input, playersVal (17), dealersVal(10), playerHasAce(1), doubleFlag(1), spltFlag(1), actions(4)
+            var net = new Net.Net(32, x, 1);
             Random r = new Random();
-            var eps = .9;
+            var eps = .6;
             //showPolicy(net);
             for (int i = 0; i < numberOfHands; i++)
             {
@@ -40,10 +40,10 @@ namespace BlackJack
                     runNum.Add(i);
                     Console.WriteLine(i + ": " +perc);
                     //set learning rate to perc
-                    NetCore.learningRate = -1.0f * (float) (perc / 5.0);
+                    NetCore.learningRate = -1.0f * (float) (perc / 2.0);
                     if (NetCore.learningRate < 0.0f)
                         NetCore.learningRate = .001f;
-                    
+                    //NetCore.learningRate = .2f;
                     Console.WriteLine(NetCore.learningRate);
                     //showPolicy(net);
                 }
@@ -52,7 +52,7 @@ namespace BlackJack
                     NNsimpleBasicStrategy(net, 1, eps, true);
                 }
 
-                if(i % 50000 == 0)
+                if(i % 100000 == 0)
                     showPolicy(net);
 
             }
@@ -93,14 +93,44 @@ namespace BlackJack
 
         static private void showPolicy(Net.Net n)
         {
+            Console.Write("    ");
             var pol = new NNBasicStrategy(n, 1.0);
-            //Try each possible input and get the output.
-            for(int p = 21; p >= 4; p--)
+            for (int d = 2; d <= 11; d++)
             {
-                for(int d = 2; d <= 11; d++)
+                Console.Write(d + " ");
+            }
+            Console.WriteLine();
+            //Try each possible input and get the output.
+            for (int p = 21; p >= 4; p--)
+            {
+                if(p >= 10)
+                    Console.Write(p + "  ");
+                else
+                    Console.Write(p + "   ");
+                for (int d = 2; d <= 11; d++)
                 {
                     Hand pH = new Hand();
                     Hand dH = new Hand();
+                    pH.addCards(p);
+                    dH.addCards(d);
+                    var a = pol.choosePlayerAction(pH, dH);
+                    Console.Write(a + " ");
+                }
+                Console.WriteLine();
+            }
+
+            //do for soft totals
+            Console.WriteLine();
+            Console.WriteLine("------ SOFTS ------");
+
+            for (int p = 2; p <= 9; p++)
+            {
+                Console.Write(p + "   ");
+                for (int d = 2; d <= 11; d++)
+                {
+                    Hand pH = new Hand();
+                    Hand dH = new Hand();
+                    pH.addCards(11);
                     pH.addCards(p);
                     dH.addCards(d);
                     var a = pol.choosePlayerAction(pH, dH);
@@ -126,16 +156,12 @@ namespace BlackJack
             
         }
 
-        private static List<double> simpleBasicStrategy(int numOfHands)
+        private static double simpleBasicStrategy(int numOfHands)
         {
             var ret = new List<double>();
             int totalHandsPlayed;
             double winLoss = 0.0; //-1 for loss, +1 for win. +1.5 for blackjack. 0 for draw
             var policy = new BasicStrategy();
-            int numBlackJacks = 0;
-            int numWins = 0;
-            int numDraws = 0;
-            int numLosses = 0;
             //do each hand
             for (totalHandsPlayed = 0; totalHandsPlayed < numOfHands; totalHandsPlayed++)
             {
@@ -148,87 +174,10 @@ namespace BlackJack
                 dealerHand.addCards(deck.getCard());
                 playerHand.addCards(deck.getCard());
                 dealerHand.addCards(deck.getCard());
-
-
-                if (playerHand.getValue() == 21 && dealerHand.getValue() != 21)
-                {
-                    //BLACK JACK
-                    numBlackJacks++;
-                    winLoss += 1.5;
-                }
-                else if (dealerHand.getValue() == 21)
-                { 
-                    //Dealer BJ
-                    numLosses++;
-                    winLoss -= 1.0;
-                }
-                else
-                {
-                    //player decisions
-                    var action = policy.choosePlayerAction(playerHand, dealerHand);
-                    while (action == 1)
-                    {
-                        playerHand.addCards(deck.getCard());
-                        action = policy.choosePlayerAction(playerHand, dealerHand);
-                    }
-
-                    //see if we busted
-                    if (playerHand.getValue() > 21)
-                    {
-                        numLosses++;
-                        winLoss -= 1.0;
-                    }
-                    else
-                    {
-                        //play dealer
-                        var dealerAction = policy.chooseDealerAction(dealerHand);
-                        while (dealerAction == 1)
-                        {
-                            dealerHand.addCards(deck.getCard());
-                            dealerAction = policy.chooseDealerAction(dealerHand);
-                        }
-
-                        if (dealerHand.getValue() > 21) //dealer busts
-                        {
-                            numWins++;
-                            winLoss += 1.0;
-                        }
-                        else if (dealerHand.getValue() < playerHand.getValue())
-                        {
-                            numWins++;
-                            winLoss += 1.0f;
-                        }
-                        else if (dealerHand.getValue() == playerHand.getValue())
-                        {
-                            numDraws++;
-                        }
-                        else
-                        {
-                            numLosses++;
-                            winLoss -= 1.0;
-                        }
-
-                    }
-                }
-
-                if(totalHandsPlayed % 1000 == 0)
-                {
-                    var x = winLoss / (1000.0);
-                    ret.Add(x);
-                    numWins = 0;
-                    numLosses = 0;
-                    numDraws = 0;
-                    numBlackJacks = 0;
-                    winLoss = 0.0;
-                }
+                playHandBasic(ref deck, playerHand, ref dealerHand, ref policy, ref winLoss);
             }
-            Console.WriteLine("Wins: " + numWins);
-            Console.WriteLine("Losses: " + numLosses);
-            Console.WriteLine("Draws: " + numDraws);
-            Console.WriteLine("BJ: " + numBlackJacks);
-            Console.WriteLine("WinLoss: " + winLoss);
-     
-            return ret;
+            var x = winLoss / (numOfHands);
+            return x;
         }
 
         private static double NNsimpleBasicStrategy(Net.Net net, int numOfHands, double eps, bool isTraining = false)
@@ -253,7 +202,7 @@ namespace BlackJack
                 playerHand.addCards(deck.getCard());
                 dealerHand.addCards(deck.getCard());
 
-                playHand(ref deck, playerHand, dealerHand, ref policy, ref winLoss, isTraining);
+                playHand(ref deck, playerHand, ref dealerHand, ref policy, ref winLoss, isTraining);
             }
 
             var x = winLoss / (1.0 * numOfHands);
@@ -274,7 +223,110 @@ namespace BlackJack
             return dealerHand.getValue(); // return value of dealer hand.
         }
         
-        private static float playHand(ref Deck deck, Hand playerHand, Hand dealerHand, ref NNBasicStrategy policy, ref double winLoss, bool isTraining)
+        private static float playHandBasic(ref Deck deck, Hand playerHand, ref Hand dealerHand, ref BasicStrategy policy, ref double winLoss)
+        {
+            var reward = 0.0f;
+            var mult = 1.0f;
+            //check for blackjack.
+            if (playerHand.getValue() == 21 && dealerHand.getValue() != 21)
+            {
+                winLoss += 1.5;
+                return 1.5f;
+            }
+            else if (dealerHand.getValue() == 21) //dealer got blackjack
+            {
+                winLoss -= 1.0;
+                return 0.0f;
+            }
+            else
+            {
+                //player decisions
+                var actionTaken = policy.choosePlayerAction(playerHand, dealerHand);
+
+                if (actionTaken == 1)//hit
+                {
+                    //player decisions
+                    var action = policy.choosePlayerAction(playerHand, dealerHand);
+                    while (action == 1)
+                    {
+                        playerHand.addCards(deck.getCard());
+                        action = policy.choosePlayerAction(playerHand, dealerHand);
+                    }
+                    //see if we busted
+                    if (playerHand.getValue() > 21)
+                    {
+                        winLoss -= 1.0;
+                    }
+                    else
+                    {
+                        actionTaken = 0;
+                    }
+
+                }
+                else if (actionTaken == 2) //double
+                {
+                    playerHand.addCards(deck.getCard());
+                    if (playerHand.getValue() > 21)
+                    {
+                        winLoss -= 2.0;
+                        reward = -1.0f;
+                        mult = 2.0f;
+                    }
+                    else
+                    {
+                        mult = 2.0f;
+                        actionTaken = 0;
+                    }
+                }
+                else if (actionTaken == 3) //split
+                {
+                    Hand pH1 = new Hand();
+                    Hand pH2 = new Hand();
+
+                    var val = playerHand.getValue() / 2;
+                    //split card and get an extra.
+                    pH1.addCards(val);
+                    pH2.addCards(val);
+                    pH1.addCards(deck.getCard());
+                    pH2.addCards(deck.getCard());
+
+                    //win loss for the hands
+                    reward = playHandBasic(ref deck, pH1, ref dealerHand, ref policy, ref winLoss);
+                    reward += playHandBasic(ref deck, pH2, ref dealerHand, ref policy, ref winLoss);
+
+                    winLoss += reward;
+                }
+                if (actionTaken == 0) //stand
+                {
+                    //play dealer
+                    var dealerVal = playDealer(ref deck, ref dealerHand);
+                    if (dealerVal > 21) //dealer busts
+                    {
+                        winLoss += 1.0 * mult;
+                        reward = 1.0f * mult;
+
+                    }
+                    else if (dealerVal < playerHand.getValue()) //we beat dealer
+                    {
+                        winLoss += 1.0f * mult;
+                        reward = 1.0f * mult;
+                    }
+                    else if (dealerVal == playerHand.getValue()) //draw
+                    {
+                        reward = 0.0f;
+                    }
+                    else //we lost to dealer
+                    {
+                        reward = -1.0f * mult;
+                        winLoss -= 1.0 * mult;
+                    }
+                }
+            }
+
+            return reward;
+        }
+
+        private static float playHand(ref Deck deck, Hand playerHand, ref Hand dealerHand, ref NNBasicStrategy policy, ref double winLoss, bool isTraining)
         {
             var reward = 0.0f;
             var mult = 1.0f;
@@ -326,7 +378,22 @@ namespace BlackJack
                 }
                 else if (actionTaken == 3) //split
                 {
-                    
+                    Hand pH1 = new Hand();
+                    Hand pH2 = new Hand();
+
+                    var val = playerHand.getValue() / 2;
+                    //split card and get an extra.
+                    pH1.addCards(val);
+                    pH2.addCards(val);
+                    pH1.addCards(deck.getCard());
+                    pH2.addCards(deck.getCard());
+
+                    //win loss for the hands
+                    reward = playHand(ref deck, pH1, ref dealerHand, ref policy, ref winLoss, isTraining);
+                    reward += playHand(ref deck, pH2, ref dealerHand, ref policy, ref winLoss, isTraining);
+
+                    winLoss += reward;
+                    policy.runBackwards(reward, actionTaken);
                 }
                 if(actionTaken == 0) //stand
                 {

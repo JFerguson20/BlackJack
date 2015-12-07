@@ -31,8 +31,13 @@ namespace BlackJack
             int playerVal = playerHand.getValue();
             int dealerShown = dealerHand.getDealerShowing();
             var aceVal = playerHand.getAceValue();
-
-            state = genInputVec(playerVal, dealerShown, aceVal);
+            var dubVal = 0.0f;
+            if (playerHand.canDouble())
+                dubVal = 1.0f;
+            var splVal = 0.0f;
+            if (playerHand.canSplit())
+                splVal = 1.0f;
+            state = genInputVec(playerVal, dealerShown, aceVal, dubVal, splVal);
             float[] qScores = new float[numActions];
             for(int act = 0; act < numActions; act++)
             {
@@ -51,7 +56,19 @@ namespace BlackJack
                 action = getExploreAction(qScores, playerHand);
             }
 
+            action = shouldSplit(playerHand, dealerHand, action, playerHand.canSplit());
+
             return action;
+        }
+
+        private int shouldSplit(Hand playerHand, Hand dealerHand, int action, bool canSplit)
+        {
+            if (!canSplit)
+                return action;
+
+            var ret = action;
+
+            return ret;
         }
 
         private int getExploreAction(float[] qScores, Hand playerHand)
@@ -74,7 +91,7 @@ namespace BlackJack
 
             //now get a random worse action
             var a = maxI;
-            while(a == maxI || ((!canDub && a == 2) && (!canSpl && a == 3)))
+            while(a == maxI || ((!canDub && a == 2) || (!canSpl && a == 3)))
             {
                 a = r.Next(0, qScores.Length);
             }
@@ -86,18 +103,45 @@ namespace BlackJack
         {
             float max = -10000000.0f;
             int maxI = -1;
+            int secondMax = -1;
             bool canDub = playerHand.canDouble();
             bool canSpl = playerHand.canSplit();
             for (int i = 0; i < qScores.Length; i++)
             {
                 if (i == 2 && !canDub)
-                    continue;
+                    secondMax = maxI;
                 if (qScores[i] > max)
                 {
                     max = qScores[i];
                     maxI = i;
                 }
             }
+            //if we picked double and we cant dub
+            if (!canDub && maxI == 2)
+            {
+                //hit with neg reward and pick second best
+                runBackwards(-1.0f, 2);
+                maxI = secondMax;
+
+            }
+
+            ////if we picked split and we cant split
+            //if (!canSpl && maxI == 3)
+            //{
+            //    runBackwards(-1.0f, 3);
+            //    max = -10000000.0f;
+
+            //    for (int i = 0; i < qScores.Length; i++)
+            //    {
+            //        if (qScores[i] > max && i != 3)
+            //        {
+            //            max = qScores[i];
+            //            maxI = i;
+            //        }
+            //    }
+            //}
+
+            //if we picked double and we cant dub
 
             return maxI;
         }
@@ -123,7 +167,7 @@ namespace BlackJack
             int dealerShown = newDealer.getDealerShowing();
             var aceVal = newPlayer.getAceValue();
 
-            var newState = genInputVec(playerVal, dealerShown, aceVal);
+            var newState = genInputVec(playerVal, dealerShown, aceVal, 0.0f, 0.0f);
 
             float[] qScores = new float[numActions];
             for (int act = 0; act < 2; act++)
@@ -171,18 +215,22 @@ namespace BlackJack
             float[] ret = new float[10];
             for (int i = 0; i < ret.Length; i++)
                 ret[i] = 0.0f;
+
+            if (dealerShowing == 1)
+                dealerShowing = 11;
+
             ret[dealerShowing - 2] = 1.0f;
             return ret;
         }
 
-        private static float[] genInputVec(int playerVal, int dealerShowing, float aceVal)
+        private static float[] genInputVec(int playerVal, int dealerShowing, float aceVal, float dubVal, float splVal)
         {
-            float[] ret = new float[28];
+            float[] ret = new float[29];
 
             var playerVec = playerValVec(playerVal);
             var dealerVec = dealerValVec(dealerShowing);
 
-            for (int i = 0; i < ret.Length - 1; i++)
+            for (int i = 0; i < 27; i++)
             {
                 if (i < playerVec.Length)
                 {
@@ -194,6 +242,8 @@ namespace BlackJack
                 }
             }
             ret[27] = aceVal;
+            ret[28] = dubVal;
+            //ret[29] = splVal;
             return ret;
         }
 

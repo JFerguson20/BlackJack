@@ -76,6 +76,57 @@ namespace BlackJack
                     action = 0;
                 }
             }
+            //do the double checks        
+            if (playerHand.canDouble())
+            {         
+                if (playerVal == 11)
+                    action = 2;
+                else  if (playerVal == 10 && dealerShown <= 9)
+                    action = 2;
+                else if (playerVal == 9 && (dealerShown >= 3 && dealerShown <= 6))
+                    action = 2;
+
+                //do the soft totals
+                if(playerHand.getAceValue() == 1.0f)
+                {
+                    if (playerVal == 13 && (dealerShown == 5 || dealerShown == 6))
+                        action = 2;
+                    else if (playerVal == 14 && (dealerShown == 5 || dealerShown == 6))
+                        action = 2;
+                    else if (playerVal == 15 && (dealerShown == 4 || dealerShown == 5 || dealerShown == 6))
+                        action = 2;
+                    else if (playerVal == 16 && (dealerShown == 4 || dealerShown == 5 || dealerShown == 6))
+                        action = 2;
+                    else if (playerVal == 17 && (dealerShown == 3 || dealerShown == 4 || dealerShown == 5 || dealerShown == 6))
+                        action = 2;
+                    else if (playerVal == 18 && (dealerShown <= 6))
+                        action = 2;
+                    else if (playerVal == 19 && (dealerShown == 6))
+                        action = 2;
+                }
+            }
+
+            //split checks
+            if (playerHand.canSplit())
+            {
+                if (playerVal == 12 && playerHand.getAceValue() == 1.0f) //AA
+                    action = 3;
+                else if (playerVal == 18 && (dealerShown <= 6 || dealerShown == 8 || dealerShown == 9))
+                    action = 3;
+                else if (playerVal == 16)
+                    action = 3;
+                else if (playerVal == 14 && dealerShown <= 7)
+                    action = 3;
+                else if (playerVal == 12 && dealerShown <= 6)
+                    action = 3;
+                else if (playerVal == 8 && (dealerShown == 5 || dealerShown == 6))
+                    action = 3;
+                else if (playerVal == 6 && (dealerShown <= 7))
+                    action = 3;
+                else if (playerVal == 4 && (dealerShown <= 7))
+                    action = 3;
+            }
+            
             return action;
         } 
 

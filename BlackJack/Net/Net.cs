@@ -9,6 +9,7 @@ namespace BlackJack.Net
     /// <summary>
     /// The Neural Network Class.
     /// </summary>
+    [Serializable()]
     public class Net
     {
         Layer[] hiddenLayers;
