@@ -53,6 +53,7 @@
     <Compile Include="Net\NetCore.cs" />
     <Compile Include="Net\Neuron.cs" />
     <Compile Include="NNBasicStrategy.cs" />
+    <Compile Include="NNBettingStrategy.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RandomStrategy.cs" />

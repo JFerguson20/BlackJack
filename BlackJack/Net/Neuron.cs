@@ -9,6 +9,7 @@ namespace BlackJack.Net
     /// <summary>
     /// The neuron class implements both the forward and backward stages that are called.
     /// </summary>
+    [Serializable()]
     class Neuron
     {
         public float value { get; set; }

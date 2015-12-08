@@ -143,24 +143,6 @@ namespace BlackJack
 
             }
 
-            ////if we picked split and we cant split
-            //if (!canSpl && maxI == 3)
-            //{
-            //    runBackwards(-1.0f, 3);
-            //    max = -10000000.0f;
-
-            //    for (int i = 0; i < qScores.Length; i++)
-            //    {
-            //        if (qScores[i] > max && i != 3)
-            //        {
-            //            max = qScores[i];
-            //            maxI = i;
-            //        }
-            //    }
-            //}
-
-            //if we picked double and we cant dub
-
             return maxI;
         }
 

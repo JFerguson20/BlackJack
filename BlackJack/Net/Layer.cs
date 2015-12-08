@@ -10,6 +10,7 @@ namespace BlackJack.Net
     /// A layer holds the neurons in the layer as well as the values, graidents and weights for each neuron.
     /// Layer is called from net in training and testing then further calls each neuron to get the results.
     /// </summary>
+    [Serializable()]
     class Layer
     {
         private Neuron[] Neurons;

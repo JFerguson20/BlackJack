@@ -4,6 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BlackJack.Net;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace BlackJack
 {
@@ -13,24 +16,26 @@ namespace BlackJack
         static void Main(string[] args)
         {   
             //var x = simpleBasicStrategy(10000000);
-            simpleBlackjack(5000000, 50000);
+            simpleBlackjack(10000000, 50000);
+            //load the net
             int i = 0;
         }
-        
-        
+
+
 
         //test with only hit and stand actions
         static private void simpleBlackjack(int numberOfHands, int testInterval)
         {
 
-            int[] x = {200};
-            int[] y = {50};
+            int[] x = { 150 };
+            int[] y = { 50 };
             List<double> percs = new List<double>();
             List<int> runNum = new List<int>();
             //+9 card coupts
             //input, playersVal (17), dealersVal(10), playerHasAce(1), doubleFlag(1), spltFlag(1), actions(4)
             //var net = new Net.Net(32, x, 1);
             var playingNet = new Net.Net(41, x, 1);
+            //9 card counds, 1 decks left, 3 actions (low, med, high)
             var bettingNet = new Net.Net(13, y, 1);
             Random r = new Random();
             var eps = .7;
@@ -41,17 +46,17 @@ namespace BlackJack
 
             for (int i = 0; i < numberOfHands; i++)
             {
-                if(i % testInterval == 0)
+                if (i % testInterval == 0)
                 {
                     var perc = NNsimpleBasicStrategy(playingNet, 10000, 1.0, ref deck);
                     percs.Add(perc);
                     runNum.Add(i);
-                    Console.WriteLine(i + ": " +perc);
+                    Console.WriteLine(i + ": " + perc);
                     //set learning rate to perc
-                    NetCore.learningRate = -1.0f * (float) (perc / 2.0);
+                    NetCore.learningRate = -1.0f * (float)(perc);
                     if (NetCore.learningRate < 0.0f)
                         NetCore.learningRate = .001f;
-                    if(i < 2000000)
+                    if (i < 1000000)
                         NetCore.learningRate = .2f;
                     Console.WriteLine(NetCore.learningRate);
                     //showPolicy(net);
@@ -62,12 +67,24 @@ namespace BlackJack
                 }
 
                 //if(i % 100000 == 0)
-                    //showPolicy(net);
+                //showPolicy(net);
 
             }
+
+            //save training net
+            //Opens a file and serializes the object into it in binary format.
+            Stream stream = File.Open("playingNet.xml", FileMode.Create);
+            BinaryFormatter formatter = new BinaryFormatter();
+
+            //BinaryFormatter formatter = new BinaryFormatter();
+
+            formatter.Serialize(stream, playingNet);
+            stream.Close();
+
             eps = .9;
             //train the counting.
             var countingTraining = 1000000;
+            testInterval = 10000;
             for (int i = 0; i < numberOfHands; i++)
             {
                 if (i % testInterval == 0)
@@ -90,6 +107,7 @@ namespace BlackJack
                     NNCountingBasicStrategy(playingNet, bettingNet, 1, eps, ref deck, true);
                 }
             }
+        }
 
         private static void writeToFile(List<int> runNum, List<double> percs, List<double> basic, List<double> random)
         {
@@ -190,7 +208,6 @@ namespace BlackJack
             //input, playersVal (17), dealersVal(10), playerHasAce(1)
             var policy = new NNBasicStrategy(net, eps);
 
-            bool noForwardPass = false;
             //do each hand
             for (totalHandsPlayed = 0; totalHandsPlayed < numOfHands; totalHandsPlayed++)
             {
@@ -221,11 +238,19 @@ namespace BlackJack
 
             //input, playersVal (17), dealersVal(10), playerHasAce(1)
             var playingPolicy = new NNBasicStrategy(playingNet, 1.0);//fixed policy for playing 
-
-            bool noForwardPass = false;
+            var bettingPolicy = new NNBettingStrategy(bettingNet, eps);
             //do each hand
             for (totalHandsPlayed = 0; totalHandsPlayed < numOfHands; totalHandsPlayed++)
             {
+                //figure out bet
+                var bet = 1.0f;
+                var actionTaken = bettingPolicy.chooseBet(deck);
+
+                if (actionTaken == 1)
+                    bet = 5.0f;
+                if (actionTaken == 2)
+                    bet = 10.0f;
+
                 if (deck.isDeckFinished())
                 {
                     deck = new Deck(6);
@@ -239,7 +264,9 @@ namespace BlackJack
                 playerHand.addCards(deck.getCard());
                 dealerHand.addCards(deck.getCard());
 
-                playHand(ref deck, playerHand, ref dealerHand, ref playingPolicy, ref winLoss, isTraining);
+                var reward = playHand(ref deck, playerHand, ref dealerHand, ref playingPolicy, ref winLoss, isTraining);
+                reward = reward * bet;
+                bettingPolicy.runBackwards(reward, actionTaken);
             }
 
             var x = winLoss / (1.0 * numOfHands);
@@ -377,7 +404,7 @@ namespace BlackJack
             else if (dealerHand.getValue() == 21) //dealer got blackjack
             {
                 winLoss -= 1.0;
-                return 0.0f;
+                return -1.0f;
             }
             else 
             {

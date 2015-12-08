@@ -120,6 +120,18 @@ namespace BlackJack
 
             return ret;
         }
+
+        public float[] getBettingState()
+        {
+            float[] ret = new float[10];
+            var x = getDeckPercentages();
+            for(int i = 0; i < 9; i++)
+            {
+                ret[i] = x[i];
+            }
+            ret[9] = (float)((1.0 * cardsLeft.Count) / (1.0 * 312));
+            return ret;
+        }
     }
 
     public static class ThreadSafeRandom
