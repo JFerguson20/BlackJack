@@ -61,6 +61,29 @@ namespace BlackJack
             return action;
         }
 
+        public float[] getQScores(Hand playerHand, Hand dealerHand, Deck deck)
+        {
+            int playerVal = playerHand.getValue();
+            int dealerShown = dealerHand.getDealerShowing();
+            var aceVal = playerHand.getAceValue();
+            var dubVal = 0.0f;
+            if (playerHand.canDouble())
+                dubVal = 1.0f;
+            var splVal = 0.0f;
+            if (playerHand.canSplit())
+                splVal = 1.0f;
+            state = genInputVec(playerVal, dealerShown, deck, aceVal, dubVal, splVal);
+            float[] qScores = new float[numActions];
+            for (int act = 0; act < numActions; act++)
+            {
+                var input = actionPlusState(act, state);
+                var a = net.forward(input);
+                qScores[act] = a[0];
+            }
+            return qScores;
+        }
+
+
         private int shouldSplit(Hand playerHand, Hand dealerHand, int action, bool canSplit)
         {
             if (!canSplit)

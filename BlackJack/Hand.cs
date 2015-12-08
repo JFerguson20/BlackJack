@@ -99,5 +99,17 @@ namespace BlackJack
         {
             return (cards.Count <= 2); // can only double off the beginning
         }
+
+        public string handToString()
+        {
+            string ret = "";
+            foreach(var card in cards)
+            {
+                ret += card + ", ";  
+            }
+            return ret;
+
+                  
+        }
     }
 }

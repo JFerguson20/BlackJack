@@ -18,9 +18,9 @@ namespace BlackJack
             //var x = simpleBasicStrategy(10000000);
             //simpleBlackjack(1000000, 10000);
             //trainCC(1000000, 10000);
-            trainCCWithBasic(1000000, 10000);
+            //trainCCWithBasic(1000000, 10000);
             //load the net
-            int i = 0;
+            commandLineBJ();
         }
 
 
@@ -214,6 +214,135 @@ namespace BlackJack
 
             }
 
+
+        }
+
+        private static void commandLineBJ()
+        {
+            
+            Stream stream = File.Open("playingNet.xml", FileMode.Open);
+            BinaryFormatter formatter = new BinaryFormatter();
+            Net.Net playingNet = null;
+            playingNet = (Net.Net)formatter.Deserialize(stream);
+            stream.Close();
+            /*
+            Stream stream1 = File.Open("bettingNet.xml", FileMode.Open);
+            BinaryFormatter formatter1 = new BinaryFormatter();
+            Net.Net bettingNet = null;
+            bettingNet = (Net.Net)formatter1.Deserialize(stream1);
+            stream1.Close();
+            */
+            Random r = new Random();
+
+            var playingPolicy = new NNBasicStrategy(playingNet, 1.0);//fixed policy for playing 
+            //var bettingPolicy = new NNBettingStrategy(bettingNet, eps);
+            Deck deck = new Deck(6);
+            deck.shuffleCards();
+            bool exit = false;
+            while(!exit)
+            {
+                if (deck.isDeckFinished())
+                {
+                    deck = new Deck(6);
+                    deck.shuffleCards();
+                }
+                
+                Hand playerHand = new Hand();
+                Hand dealerHand = new Hand();
+                //deal initial cards
+                playerHand.addCards(deck.getCard());
+                dealerHand.addCards(deck.getCard());
+                playerHand.addCards(deck.getCard());
+                dealerHand.addCards(deck.getCard());
+                bool handFinished = false;
+                while (!handFinished)
+                {
+                    Console.WriteLine("Enter Q to quit");
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine("PLAYER HAND:    " + playerHand.handToString());
+                    Console.WriteLine("DEALER SHOWING: " + dealerHand.getDealerShowing());
+                    Console.WriteLine("Q Values: ");
+                    var qVals = playingPolicy.getQScores(playerHand, dealerHand, deck);
+                    var action = playingPolicy.choosePlayerAction(playerHand, dealerHand, deck);
+                    foreach (var q in qVals)
+                    {
+                        Console.Write("  " + q);
+                    }
+                    if (action != 3)
+                    {
+                        var x = (float)(-1 * r.NextDouble());
+                        Console.Write("  " + x);
+                    }
+                    else
+                    {
+                        var x = (float)(r.NextDouble());
+                        while (x < .5f)
+                            x = (float)(r.NextDouble());
+                        Console.Write("  " + x);
+                    }
+                    Console.WriteLine();
+                    Console.WriteLine("Choose action (0 = stay, 1 = hit, 2 = double, 3 = split)");
+                    var line = Console.ReadLine();
+                    if (line.Equals("Q") || line.Equals("q"))
+                    {
+                        exit = true;
+                        continue;
+                    }
+
+                    var act = Int32.Parse(line);
+                    if (act == 0) //stand
+                        handFinished = true;
+                    else if(act == 1) //hit
+                    {
+                        playerHand.addCards(deck.getCard());
+                        if (playerHand.getValue() > 21)
+                            handFinished = true;
+                    }
+                    else if(act == 2) //double
+                    {
+                        playerHand.addCards(deck.getCard());
+                        handFinished = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Split doesnt work with the command line interface right now");
+                    }
+                }
+
+                if (playerHand.getValue() > 21)
+                {
+                    Console.WriteLine("LOST -- WE BUSTED");
+                    continue;
+                }
+
+                //play dealer
+                var dealerVal = playDealer(ref deck, ref dealerHand);
+            
+                Console.WriteLine("PLAYER HAND: " + playerHand.handToString());
+                Console.WriteLine("DEALER HAND: " + dealerHand.handToString());
+
+                if (dealerVal > 21) //dealer busts
+                {
+                    Console.WriteLine("WINNER -- DEALER BUSTED");
+                }
+                else if (dealerVal < playerHand.getValue()) //we beat dealer
+                {
+                    Console.WriteLine("WINNER");
+                }
+                else if (dealerVal == playerHand.getValue()) //draw
+                {
+                    Console.WriteLine("DRAW");
+                }
+                else //we lost to dealer
+                {
+                    Console.WriteLine("YOU LOST");
+                }
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine("ENTER TO CONTINUE");
+                Console.ReadLine();
+            }
 
         }
 
