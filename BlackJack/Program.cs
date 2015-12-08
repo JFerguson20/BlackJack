@@ -14,9 +14,11 @@ namespace BlackJack
     {
        
         static void Main(string[] args)
-        {   
+        {
             //var x = simpleBasicStrategy(10000000);
-            simpleBlackjack(10000000, 50000);
+            //simpleBlackjack(1000000, 10000);
+            //trainCC(1000000, 10000);
+            trainCCWithBasic(1000000, 10000);
             //load the net
             int i = 0;
         }
@@ -30,6 +32,7 @@ namespace BlackJack
             int[] x = { 150 };
             int[] y = { 50 };
             List<double> percs = new List<double>();
+            List<double> bas = new List<double>();
             List<int> runNum = new List<int>();
             //+9 card coupts
             //input, playersVal (17), dealersVal(10), playerHasAce(1), doubleFlag(1), spltFlag(1), actions(4)
@@ -48,8 +51,11 @@ namespace BlackJack
             {
                 if (i % testInterval == 0)
                 {
-                    var perc = NNsimpleBasicStrategy(playingNet, 10000, 1.0, ref deck);
+                    var perc = NNsimpleBasicStrategy(playingNet, 100000, 1.0, ref deck);
+                    //var bs = simpleBasicStrategy(100000);
+
                     percs.Add(perc);
+                    //bas.Add(bs);
                     runNum.Add(i);
                     Console.WriteLine(i + ": " + perc);
                     //set learning rate to perc
@@ -71,25 +77,43 @@ namespace BlackJack
 
             }
 
+            writeToFile(runNum, percs, bas);
+
             //save training net
             //Opens a file and serializes the object into it in binary format.
             Stream stream = File.Open("playingNet.xml", FileMode.Create);
             BinaryFormatter formatter = new BinaryFormatter();
 
-            //BinaryFormatter formatter = new BinaryFormatter();
-
             formatter.Serialize(stream, playingNet);
             stream.Close();
 
-            eps = .9;
+            
+        }
+        static private void trainCC(int numberOfHands, int testInterval)
+        {
+            Stream stream = File.Open("playingNet.xml", FileMode.Open);
+            BinaryFormatter formatter = new BinaryFormatter();
+            Net.Net playingNet = null;
+            playingNet = (Net.Net)formatter.Deserialize(stream);
+            stream.Close();
+            List<double> percs = new List<double>();
+            List<double> bas = new List<double>();
+            List<int> runNum = new List<int>();
+            int[] y = { 50 };
+
+            var bettingNet = new Net.Net(13, y, 1);
+            var eps = .9;
             //train the counting.
             var countingTraining = 1000000;
             testInterval = 10000;
+            Deck deck = new Deck(6);
+            deck.shuffleCards();
             for (int i = 0; i < numberOfHands; i++)
             {
                 if (i % testInterval == 0)
                 {
                     var perc = NNCountingBasicStrategy(playingNet, bettingNet, 100000, 1.0, ref deck);
+                   
                     percs.Add(perc);
                     runNum.Add(i);
                     Console.WriteLine(i + ": " + perc);
@@ -97,7 +121,7 @@ namespace BlackJack
                     NetCore.learningRate = -1.0f * (float)(perc / 2.0);
                     if (NetCore.learningRate < 0.0f)
                         NetCore.learningRate = .001f;
-                    if (i < 2000000)
+                    if (i < 200000)
                         NetCore.learningRate = .2f;
                     Console.WriteLine(NetCore.learningRate);
                     //showPolicy(net);
@@ -107,9 +131,54 @@ namespace BlackJack
                     NNCountingBasicStrategy(playingNet, bettingNet, 1, eps, ref deck, true);
                 }
             }
+
+            Stream stream1 = File.Open("bettingNet.xml", FileMode.Create);
+            BinaryFormatter formatter1 = new BinaryFormatter();
+            formatter1.Serialize(stream1, bettingNet);
+            stream.Close();
+            writeSingleToFile(percs);
+        }
+        
+        static private void trainCCWithBasic(int numberOfHands, int testInterval)
+        {
+            List<double> percs = new List<double>();
+            List<double> bas = new List<double>();
+            List<int> runNum = new List<int>();
+            int[] y = { 50 };
+
+            var bettingNet = new Net.Net(13, y, 1);
+            var eps = .9;
+            //train the counting.
+            var countingTraining = 1000000;
+            testInterval = 10000;
+            Deck deck = new Deck(6);
+            deck.shuffleCards();
+            for (int i = 0; i < numberOfHands; i++)
+            {
+                if (i % testInterval == 0)
+                {
+                    var perc = ccBasicStrategy(bettingNet, 100000, 1.0, ref deck);
+
+                    percs.Add(perc);
+                    runNum.Add(i);
+                    Console.WriteLine(i + ": " + perc);
+                    //set learning rate to perc
+                    NetCore.learningRate = -1.0f * (float)(perc / 2.0);
+                    if (NetCore.learningRate < 0.0f)
+                        NetCore.learningRate = .001f;
+                    if (i < 200000)
+                        NetCore.learningRate = .2f;
+                    Console.WriteLine(NetCore.learningRate);
+                    //showPolicy(net);
+                }
+                else
+                {
+                    ccBasicStrategy(bettingNet, 1, eps, ref deck, true);
+                }
+            }
         }
 
-        private static void writeToFile(List<int> runNum, List<double> percs, List<double> basic, List<double> random)
+        private static void writeToFile(List<int> runNum, List<double> percs, List<double> basic)
         {
             using (System.IO.StreamWriter file =
              new System.IO.StreamWriter("basicStrategyOut.csv"))
@@ -128,11 +197,21 @@ namespace BlackJack
                 {
                     file.Write(run + ",");
                 }
-                file.WriteLine();
-                foreach (var run in random)
+            }
+
+
+        }
+
+        private static void writeSingleToFile(List<double> percs)
+        {
+            using (System.IO.StreamWriter file =
+             new System.IO.StreamWriter("bettingStrategyOut.csv"))
+            {
+                foreach (var run in percs)
                 {
                     file.Write(run + ",");
                 }
+
             }
 
 
@@ -189,6 +268,91 @@ namespace BlackJack
 
         }
         */
+
+            /*
+        private static double simpleBasicStrategy(int numOfHands)
+        {
+            var ret = new List<double>();
+            int totalHandsPlayed;
+            double winLoss = 0.0; //-1 for loss, +1 for win. +1.5 for blackjack. 0 for draw
+            var policy = new BasicStrategy();
+            //do each hand
+            Deck deck = new Deck(6);
+            deck.shuffleCards();
+            for (totalHandsPlayed = 0; totalHandsPlayed < numOfHands; totalHandsPlayed++)
+            {
+                if (deck.isDeckFinished())
+                {
+                    deck = new Deck(6);
+                    deck.shuffleCards();
+                }
+
+                //decide bet
+                var trueCount = deck.getTrueCount();
+                var bet = 1.0;
+                if (trueCount > 2)
+                    bet = 10.0;
+
+                Hand playerHand = new Hand();
+                Hand dealerHand = new Hand();
+                //deal initial cards
+                playerHand.addCards(deck.getCard());
+                dealerHand.addCards(deck.getCard());
+                playerHand.addCards(deck.getCard());
+                dealerHand.addCards(deck.getCard());
+                playHandBasic(ref deck, playerHand, ref dealerHand, ref policy, ref winLoss, bet);
+            }
+            var x = winLoss / (numOfHands);
+            return x;
+        }
+        */
+        private static double ccBasicStrategy(Net.Net bettingNet, int numOfHands, double eps, ref Deck deck, bool isTraining = false)
+        { 
+            int totalHandsPlayed;
+            double winLoss = 0.0; //-1 for loss, +1 for win. +1.5 for blackjack. 0 for draw
+            var policy = new BasicStrategy();
+            var bettingPolicy = new NNBettingStrategy(bettingNet, eps);
+            //do each hand
+            for (totalHandsPlayed = 0; totalHandsPlayed < numOfHands; totalHandsPlayed++)
+            {
+                if (deck.isDeckFinished())
+                {
+                    deck = new Deck(6);
+                    deck.shuffleCards();
+                }
+
+                //figure out bet
+                var bet = 1.0f;
+                var actionTaken = bettingPolicy.chooseBet(deck);
+
+                if (actionTaken == 1)
+                    bet = 5.0f;
+                if (actionTaken == 2)
+                    bet = 10.0f;
+
+                Hand playerHand = new Hand();
+                Hand dealerHand = new Hand();
+                //deal initial cards
+                playerHand.addCards(deck.getCard());
+                dealerHand.addCards(deck.getCard());
+                playerHand.addCards(deck.getCard());
+                dealerHand.addCards(deck.getCard());
+
+                var winBefore = winLoss;
+                var winAfter = winLoss;
+                var diff = winAfter - winBefore;
+
+                var reward = playHandBasic(ref deck, playerHand, ref dealerHand, ref policy, ref winLoss);
+                reward = reward * bet;
+                if(isTraining )
+                    bettingPolicy.runBackwards(reward, actionTaken);
+
+                diff = (bet * diff) - diff;
+                winLoss += diff;
+            }
+            var x = winLoss / (numOfHands);
+            return x;
+        }
 
         static private int maxAction(float[] a)
         {
@@ -288,20 +452,20 @@ namespace BlackJack
             return dealerHand.getValue(); // return value of dealer hand.
         }
         
-        private static float playHandBasic(ref Deck deck, Hand playerHand, ref Hand dealerHand, ref BasicStrategy policy, ref double winLoss, double bet)
+        private static float playHandBasic(ref Deck deck, Hand playerHand, ref Hand dealerHand, ref BasicStrategy policy, ref double winLoss)
         {
             var reward = 0.0f;
             var mult = 1.0f;
             //check for blackjack.
             if (playerHand.getValue() == 21 && dealerHand.getValue() != 21)
             {
-                winLoss += 1.5 * bet;
-                return 1.5f * (float)bet;
+                winLoss += 1.5;
+                return 1.5f;
             }
             else if (dealerHand.getValue() == 21) //dealer got blackjack
             {
-                winLoss -= 1.0 * bet;
-                return -1.0f * (float)bet;
+                winLoss -= 1.0;
+                return -1.0f;
             }
             else
             {
@@ -320,7 +484,7 @@ namespace BlackJack
                     //see if we busted
                     if (playerHand.getValue() > 21)
                     {
-                        winLoss -= 1.0 * bet;
+                        winLoss -= 1.0;
                     }
                     else
                     {
@@ -333,8 +497,8 @@ namespace BlackJack
                     playerHand.addCards(deck.getCard());
                     if (playerHand.getValue() > 21)
                     {
-                        winLoss -= 2.0 * bet;
-                        reward = -1.0f * (float)bet;
+                        winLoss -= 2.0;
+                        reward = -1.0f;
                         mult = 2.0f;
                     }
                     else
@@ -356,8 +520,8 @@ namespace BlackJack
                     pH2.addCards(deck.getCard());
 
                     //win loss for the hands
-                    reward = playHandBasic(ref deck, pH1, ref dealerHand, ref policy, ref winLoss, bet);
-                    reward += playHandBasic(ref deck, pH2, ref dealerHand, ref policy, ref winLoss, bet);
+                    reward = playHandBasic(ref deck, pH1, ref dealerHand, ref policy, ref winLoss);
+                    reward += playHandBasic(ref deck, pH2, ref dealerHand, ref policy, ref winLoss);
 
                     winLoss += reward;
                 }
@@ -367,14 +531,14 @@ namespace BlackJack
                     var dealerVal = playDealer(ref deck, ref dealerHand);
                     if (dealerVal > 21) //dealer busts
                     {
-                        winLoss += 1.0 * mult * bet;
-                        reward = 1.0f * mult * (float)bet;
+                        winLoss += 1.0 * mult;
+                        reward = 1.0f * mult;
                         
                     }
                     else if (dealerVal < playerHand.getValue()) //we beat dealer
                     {
-                        winLoss += 1.0f * mult * bet;
-                        reward = 1.0f * mult * (float)bet;
+                        winLoss += 1.0f * mult;
+                        reward = 1.0f * mult;
                     }
                     else if (dealerVal == playerHand.getValue()) //draw
                     {
@@ -382,8 +546,8 @@ namespace BlackJack
                     }
                     else //we lost to dealer
                     {                     
-                        winLoss -= 1.0 * mult * bet;
-                        reward = -1.0f * mult * (float)bet;
+                        winLoss -= 1.0 * mult;
+                        reward = -1.0f * mult;
                     }
                 }
             }
